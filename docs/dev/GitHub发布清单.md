@@ -30,7 +30,29 @@ SoundVault/
 
 ---
 
-## 二、本地提交（这台机器还没装 Git）
+## 二、本地提交（仓库已经初始化好了）
+
+> 这台机器上 GitHub 直连下载 Git 会超时（`winget` 报 0x80072ee2 / 0x80072efd），
+> 所以用了**便携版 MinGit**：`D:\deepseek harness workspace\.tools\git\cmd\git.exe`（不进 PATH、不影响系统）。
+> 本地仓库已初始化并打好第一个提交 `音匣 SoundVault 1.0.0`（214 个文件 / 17.9 MB，分支 `main`）。
+
+接下来只差"连到 GitHub 并 push"：
+
+```powershell
+cd "D:\deepseek harness workspace\SoundVault"
+$env:PATH = "D:\deepseek harness workspace\.tools\git\cmd;" + $env:PATH   # 用便携版 git
+
+git remote add origin https://github.com/<你的用户名>/SoundVault.git
+git push -u origin main
+```
+
+> 想装正式版 Git（可选，装完可以删掉便携版）：
+> `winget install --id Git.Git -e`
+> 网络不通时改用镜像下载 MinGit：
+> `https://registry.npmmirror.com/-/binary/git-for-windows/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip`
+
+> 以后改了代码要重新提交，用仓库里的脚本：`.\tools\git-init.ps1`（会自动找 git、设好作者、提交）。
+
 
 先装 Git：
 
