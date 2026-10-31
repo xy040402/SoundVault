@@ -44,9 +44,10 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 安装位置会自动补 `SoundVault` 子目录（选 `D:\Apps` 就是 `D:\Apps\SoundVault`）。
 装到 `C:\Program Files` 会弹 UAC 提权；装到用户目录不需要。
 
-**方式二：绿色版**
+**方式二：绿色版（不单独提供下载）**
 
-下载 `音匣.exe`，放任意文件夹直接运行。
+Release 只提供安装包。想要纯绿色版：装完把 `C:\Program Files\SoundVault\音匣.exe` 拷走即可，
+或者自己 `.\build.ps1` 构建一份。
 
 **便携模式**：在 `音匣.exe` 旁边建一个空的 `data\` 文件夹，配置和索引就存在那里，整个文件夹拷走即可。
 

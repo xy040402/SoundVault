@@ -11,7 +11,7 @@ SoundVault/
 ├─ README.md                ← 产品主页（带截图、功能表、安装、构建）
 ├─ LICENSE                  ← MIT
 ├─ CHANGELOG.md             ← 1.0.0 更新说明
-├─ .gitignore               ← 已排除 bin/obj/dist/release/backup
+├─ .gitignore               ← 已排除 bin/obj/_local（dist / release / backup 都在 _local 里）
 ├─ build.ps1                ← 一键构建（.\build.ps1 -Version 1.0.0）
 ├─ .github/workflows/build.yml   ← push / PR 自动构建 + 跑测试
 ├─ src/                     ← 主程序 + 安装器
@@ -77,8 +77,7 @@ git push -u origin main
    第一个正式版。
 
    ### 下载
-   - **音匣安装包.exe** — 双击安装（推荐）
-   - **音匣.exe** — 绿色版，双击即用
+   - **音匣安装包.exe** — 双击安装（唯一提供的下载；装完就有 `音匣.exe`）
 
    ### 亮点
    - 拼音首字母 + 过滤语法秒搜（`bdx` → 拔刀相向）
@@ -93,12 +92,15 @@ git push -u origin main
    - 单文件未签名，SmartScreen 可能提示"未知发布者"
    - 详细用法见 [使用说明书](docs/使用说明书.md)
    ```
-5. **Attach binaries**：从 `dist\` 拖进去
-   - `dist\音匣安装包.exe`（132 MB）
-   - `dist\音匣.exe`（73 MB）
+5. **Attach binary**（只传一个文件，其余 exe 都不放）：
+   - `_local\dist\音匣安装包.exe`（132 MB，已内嵌主程序）
+
+   > 绿色版 `音匣.exe` **不作为附件**。别人装完就有 `C:\Program Files\SoundVault\音匣.exe`；
+   > 想要纯绿色版的人可以自己 `.\build.ps1` 构建，或从安装目录拷出来。
+
 6. Publish release
 
-> 上传前建议先跑一次 `.\build.ps1 -Version 1.0.0`，确保 dist 里是 1.0.0 的产物。
+> 上传前建议先跑一次 `.\build.ps1 -Version 1.0.0`，确保 `_local\dist` 里是 1.0.0 的产物。
 > 也可以用 GitHub Actions 产物（workflow 已配好，跑完在 Actions → 该次运行 → Artifacts 下载）。
 
 ---
@@ -117,7 +119,7 @@ git push -u origin main
 
 ## 六、发布前自检
 
-- [ ] `.\build.ps1 -Version 1.0.0` 成功，`dist\音匣.exe` 的版本显示 1.0.0
+- [ ] `.\build.ps1 -Version 1.0.0` 成功，`_local\dist\音匣.exe` 的版本显示 1.0.0
 - [ ] `.\tools\test.ps1` 通过（51 条）
 - [ ] 在干净机器（或新建 Windows 用户）上装一次，确认首次启动是**空状态 + 新手引导**
 - [ ] README 里的图片都能显示（仓库里是相对路径）
