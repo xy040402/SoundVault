@@ -1,5 +1,10 @@
 # 音匣 SoundVault
 
+[![build](https://github.com/xy040402/SoundVault/actions/workflows/build.yml/badge.svg)](https://github.com/xy040402/SoundVault/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/xy040402/SoundVault?label=release)](https://github.com/xy040402/SoundVault/releases/latest)
+[![license](https://img.shields.io/github/license/xy040402/SoundVault)](LICENSE)
+![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)
+
 **本地音效库管理器** — 把硬盘上散落的音效文件夹，变成一个能秒搜、能试听、能打标签、能一键交付给 DAW 的库。
 
 Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的文件
