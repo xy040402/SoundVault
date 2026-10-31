@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>          <!-- Models.cs 里用到 WPF 类型，所以测试项目也要开 WPF -->
+    <RootNamespace>SoundVault.Tests</RootNamespace>
+    <AssemblyName>SoundVault.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <!-- 直接把被测的纯逻辑源码链进来：不引入 NuGet 测试框架，离线也能跑 -->
+  <ItemGroup>
+    <Compile Include="..\..\src\SoundVault.App\Models\Models.cs" Link="Models\Models.cs" />
+    <Compile Include="..\..\src\SoundVault.App\Services\SearchQuery.cs" Link="Services\SearchQuery.cs" />
+    <Compile Include="..\..\src\SoundVault.App\Services\NameCleaner.cs" Link="Services\NameCleaner.cs" />
+    <Compile Include="..\..\src\SoundVault.App\Services\ExportNames.cs" Link="Services\ExportNames.cs" />
+    <Compile Include="..\..\src\SoundVault.App\Services\Loudness.cs" Link="Services\Loudness.cs" />
+    <Compile Include="..\..\src\SoundVault.App\Services\PinyinSearch.cs" Link="Services\PinyinSearch.cs" />
+    <!-- Models.cs 里用到了 WaveformView 的 WaveData，把那个控件也链进来（纯托管，无外部依赖） -->
+    <Compile Include="..\..\src\SoundVault.App\Controls\WaveformView.cs" Link="Controls\WaveformView.cs" />
+    <!-- Models.Wave 需要 WavReader（纯托管，靠 NAudio 的解码器但这里只用到静态转换） -->
+    <Compile Include="..\..\src\SoundVault.App\Audio\WavReader.cs" Link="Audio\WavReader.cs" />
+    <!-- #51 的模型层（纯逻辑） -->
+    <Compile Include="..\..\src\SoundVault.App\ViewModels\SearchViewModel.cs" Link="ViewModels\SearchViewModel.cs" />
+    <Compile Include="..\..\src\SoundVault.App\ViewModels\SelectionViewModel.cs" Link="ViewModels\SelectionViewModel.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TinyPinyin.Net" Version="1.0.2" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>

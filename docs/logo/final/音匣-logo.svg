@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="音匣 SoundVault">
+  <title>音匣 SoundVault</title>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 匣体：圆角方形，天蓝 → 紫罗兰 -->
+  <rect x="20.5" y="20.5" width="471" height="471" rx="133" fill="url(#body)"/>
+  <rect x="20.5" y="20.5" width="471" height="471" rx="133" fill="url(#gloss)"/>
+
+  <!-- 波形：4 根圆角竖条，高低错落表示声音 -->
+  <g fill="#FFFFFF">
+    <rect x="141"   y="169" width="59" height="174" rx="29.5"/>
+    <rect x="222.5" y="102" width="59" height="308" rx="29.5"/>
+    <rect x="304"   y="143" width="59" height="226" rx="29.5"/>
+    <rect x="385.5" y="189" width="59" height="134" rx="29.5"/>
+  </g>
+</svg>

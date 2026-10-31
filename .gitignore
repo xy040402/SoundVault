@@ -1,0 +1,29 @@
+# 构建产物
+bin/
+obj/
+dist/
+release/
+backup/
+
+# IDE / 工具
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# 临时
+*.log
+*.tmp
+*.bak
+Thumbs.db
+desktop.ini
+
+# 测试产物
+tests/**/bin/
+tests/**/obj/
+TestResults/
+
+# 本地环境
+.env
+.vscode/

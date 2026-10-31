@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>音匣 SoundVault · 界面线框 v0.1</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:20px;
+    --ease:cubic-bezier(.2,.8,.2,1);
+    --fs-11:11px; --fs-12:12px; --fs-13:13px; --fs-14:14px;
+  }
+  body{
+    background:#07080B; color:#E9ECF2; overflow-x:auto;
+    font-family:"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- page chrome ---------- */
+  .page{max-width:1340px;margin:0 auto;padding:56px 30px 120px}
+  .page-head h1{font-size:30px;font-weight:650;letter-spacing:-.4px}
+  .page-head h1 span{color:#38BDF8}
+  .page-head p{margin-top:10px;color:#8B94A5;font-size:13px;line-height:1.7;max-width:760px}
+  .meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .meta-row i{
+    font-style:normal;font-size:11px;color:#9AA3B2;padding:5px 10px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)
+  }
+  .toc{display:flex;gap:8px;flex-wrap:wrap;margin:28px 0 8px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .toc a{
+    font-size:12px;color:#AEB6C4;text-decoration:none;padding:6px 11px;border-radius:8px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)
+  }
+  .toc a:hover{color:#fff;border-color:rgba(56,189,248,.5)}
+  section{margin-top:64px}
+  section > h2{font-size:17px;font-weight:600;letter-spacing:.2px;display:flex;align-items:baseline;gap:12px}
+  section > h2 b{font-size:11px;color:#38BDF8;font-weight:700;letter-spacing:1px}
+  section > .desc{color:#8B94A5;font-size:12.5px;line-height:1.75;margin-top:10px;max-width:820px}
+  .canvas{margin-top:22px;position:relative}
+  /* ---------- themes ---------- */
+  .t-dark{
+    --bg:#0A0C10; --win:rgba(9,11,15,.60);
+    --panel:rgba(255,255,255,.035); --panel-2:rgba(255,255,255,.055);
+    --edge:rgba(255,255,255,.10); --edge-2:rgba(255,255,255,.18);
+    --text:#E9ECF2; --text2:#9AA3B2; --text3:#69717F;
+    --card:rgba(255,255,255,.045); --card-hi:rgba(255,255,255,.085);
+    --wave:rgba(160,172,192,.55); --played:#38BDF8; --playhead:#fff;
+    --accent:#38BDF8; --on-accent:#04121C;
+    --shadow:0 30px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06);
+    --spec:rgba(255,255,255,.17);
+  }
+  .t-light{
+    --bg:#EAEDF3; --win:rgba(251,252,254,.80);
+    --panel:rgba(255,255,255,.58); --panel-2:rgba(255,255,255,.92);
+    --edge:rgba(255,255,255,.95); --edge-2:rgba(20,30,50,.12);
+    --text:#12161F; --text2:#49515F; --text3:#6E7686;
+    --card:rgba(255,255,255,.74); --card-hi:rgba(255,255,255,.97);
+    --wave:rgba(70,82,104,.5); --played:#0369A1; --playhead:#0B1220;
+    --accent:#0369A1; --on-accent:#fff;
+    --shadow:0 30px 70px rgba(24,34,54,.22),0 0 0 1px rgba(255,255,255,.8);
+    --spec:rgba(255,255,255,.6);
+  }
+  /* ---------- desktop + window ---------- */
+  .desk{position:relative;width:1280px;height:800px}
+  .wall{position:absolute;inset:-60px;overflow:hidden;border-radius:32px}
+  .t-dark .wall b{position:absolute;border-radius:50%;filter:blur(46px)}
+  .t-dark .wall b:nth-child(1){width:560px;height:560px;left:-100px;top:20px;background:#2563EB;opacity:.60}
+  .t-dark .wall b:nth-child(2){width:500px;height:500px;right:90px;bottom:-60px;background:#8B5CF6;opacity:.55}
+  .t-dark .wall b:nth-child(3){width:420px;height:420px;right:300px;top:-80px;background:#0891B2;opacity:.50}
+  .t-light .wall b:nth-child(1){width:520px;height:520px;left:-90px;top:40px;background:#BFDBFE;opacity:.55}
+  .t-light .wall b:nth-child(2){width:460px;height:460px;right:120px;bottom:-40px;background:#DDD6FE;opacity:.55}
+  .t-light .wall b:nth-child(3){width:380px;height:380px;right:320px;top:-60px;background:#CFFAFE;opacity:.5}
+  .window{
+    position:relative;width:1280px;height:800px;border-radius:var(--r-xl);overflow:hidden;
+    box-shadow:var(--shadow);color:var(--text);background:var(--win);
+    backdrop-filter:blur(34px) saturate(165%);
+    display:flex;flex-direction:column;
+  }
+  .window::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:5;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.05)
+  }
+  /* ---------- titlebar ---------- */
+  .titlebar{
+    height:38px;display:flex;align-items:center;gap:10px;padding:0 4px 0 14px;flex:none;
+    border-bottom:1px solid var(--edge);font-size:12px;
+  }
+  .logo{width:16px;height:16px;border-radius:5px;background:linear-gradient(140deg,var(--accent),#8B5CF6);
+    box-shadow:0 0 12px rgba(56,189,248,.45)}
+  .brand{font-weight:600;letter-spacing:.3px}
+  .lib-tabs{display:flex;gap:6px;margin-left:14px}
+  .lib-tab{font-size:11px;color:var(--text2);padding:3px 9px;border-radius:7px;background:var(--panel)}
+  .lib-tab.on{color:var(--text);background:var(--panel-2);box-shadow:inset 0 0 0 1px var(--edge)}
+  .tb-spacer{flex:1}
+  .tb-ic{width:28px;height:24px;display:grid;place-items:center;border-radius:6px;color:var(--text2)}
+  .tb-ic:hover{background:var(--panel)}
+  .win-ctl{display:flex;gap:2px;margin-left:4px}
+  .win-ctl span{width:32px;height:26px;display:grid;place-items:center;border-radius:6px;font-size:10px;color:var(--text2)}
+  .win-ctl span:hover{background:var(--panel)}
+  /* ---------- toolbar ---------- */
+  .toolbar{height:54px;display:flex;align-items:center;gap:12px;padding:0 16px;flex:none;border-bottom:1px solid var(--edge)}
+  .search{
+    width:300px;height:32px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:9px;
+    background:var(--panel);border:1px solid var(--edge);font-size:12px;color:var(--text3)
+  }
+  .search.on{border-color:rgba(56,189,248,.55);box-shadow:0 0 0 3px rgba(56,189,248,.13);color:var(--text)}
+  .search .kbd{margin-left:auto;font-size:10px;padding:2px 5px;border-radius:4px;background:var(--panel-2);color:var(--text3)}
+  .crumb{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
+  .crumb b{color:var(--text);font-weight:550}
+  .crumb .sep{color:var(--text3)}
+  .tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .pill{
+    height:28px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:8px;font-size:11.5px;
+    color:var(--text2);background:var(--panel);border:1px solid var(--edge)
+  }
+  .pill.on{color:var(--text);border-color:rgba(56,189,248,.45);background:rgba(56,189,248,.10)}
+  .seg{display:flex;padding:2px;border-radius:8px;background:var(--panel);border:1px solid var(--edge)}
+  .seg i{width:26px;height:24px;display:grid;place-items:center;border-radius:6px;font-style:normal;color:var(--text3);font-size:10px}
+  .seg i.on{background:var(--panel-2);color:var(--text);box-shadow:inset 0 0 0 1px var(--edge)}
+  /* ---------- body ---------- */
+  .body{flex:1;display:flex;min-height:0}
+  .sidebar{
+    width:244px;flex:none;display:flex;flex-direction:column;gap:2px;padding:10px 8px 8px;
+    background:var(--panel);border-right:1px solid var(--edge);backdrop-filter:blur(18px)
+  }
+  .sb-label{font-size:10px;letter-spacing:.6px;color:var(--text3);padding:10px 8px 5px;text-transform:uppercase}
+  .sb-row{
+    display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:7px;
+    font-size:12px;color:var(--text2)
+  }
+  .sb-row:hover{background:var(--panel-2);color:var(--text)}
+  .sb-row.on{background:rgba(56,189,248,.13);color:var(--text);box-shadow:inset 0 0 0 1px rgba(56,189,248,.25)}
+  .sb-row .ic{width:14px;height:14px;display:grid;place-items:center;color:var(--text3)}
+  .sb-row.on .ic{color:var(--accent)}
+  .sb-row .n{margin-left:auto;font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+  .sb-tree .sb-row{height:27px;padding-left:8px}
+  .sb-tree .sb-row.d1{padding-left:20px;font-size:11.5px}
+  .sb-tree .sb-row.d2{padding-left:33px;font-size:11.5px}
+  .sb-lib{display:flex;align-items:center;gap:7px;height:29px;padding:0 8px;border-radius:7px;
+    font-size:11.5px;color:var(--text2);margin-top:2px}
+  .sb-lib:hover{background:var(--panel-2)}
+  .sb-lib .dot{width:6px;height:6px;border-radius:2px;background:var(--accent);opacity:.9}
+  .sb-lib .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sb-lib .n{margin-left:auto;font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+  .drop-lib{
+    margin-top:auto;height:36px;display:grid;place-items:center;border-radius:9px;font-size:11.5px;
+    color:var(--text2);border:1px dashed var(--edge-2);background:rgba(255,255,255,.02)
+  }
+  .drop-lib.hot{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.08)}
+  /* ---------- content ---------- */
+  .content{flex:1;min-width:0;display:flex;flex-direction:column}
+  .content-head{padding:16px 22px 12px;display:flex;align-items:flex-end;gap:14px;flex:none}
+  .content-head h3{font-size:17px;font-weight:600;letter-spacing:-.2px}
+  .content-head .stat{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;padding-bottom:2px}
+  .content-head .tabs{margin-left:auto;display:flex;gap:4px}
+  .content-head .tabs span{font-size:11px;color:var(--text3);padding:4px 9px;border-radius:7px}
+  .content-head .tabs span.on{color:var(--text);background:var(--panel-2);box-shadow:inset 0 0 0 1px var(--edge)}
+  .scroll{flex:1;overflow:hidden;padding:0 22px 18px}
+  .folders{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .fcard{
+    height:74px;display:flex;align-items:center;gap:11px;padding:0 13px;border-radius:var(--r-m);
+    background:var(--card);border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)
+  }
+  .fcard .thumb{width:38px;height:38px;border-radius:10px;flex:none;position:relative;overflow:hidden}
+  .fcard .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(150deg,rgba(255,255,255,.35),transparent 60%)}
+  .fcard .nm{font-size:12.5px;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fcard .ct{font-size:10.5px;color:var(--text3);margin-top:3px;font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{
+    position:relative;border-radius:var(--r-m);background:var(--card);border:1px solid var(--edge);
+    padding:10px 10px 9px;transition:transform .12s var(--ease),background .12s var(--ease),box-shadow .12s var(--ease);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.055)
+  }
+  .card .top{display:flex;align-items:center;gap:6px;margin-bottom:7px;height:12px}
+  .card .idx{font-size:9.5px;color:var(--text3);font-variant-numeric:tabular-nums;letter-spacing:.3px}
+  .card .badges{margin-left:auto;display:flex;gap:4px;align-items:center}
+  .dotb{width:5px;height:5px;border-radius:50%}
+  .stars{font-size:8px;letter-spacing:1px;color:var(--accent)}
+  .wave-wrap{position:relative;height:52px;border-radius:7px;background:rgba(0,0,0,.16);overflow:hidden}
+  .t-light .wave-wrap{background:rgba(20,30,50,.05)}
+  .wave{position:absolute;inset:0;width:100%;height:100%;color:var(--wave);display:block}
+  .wave.played{color:var(--played);clip-path:inset(0 calc(100% - var(--p,0%)) 0 0)}
+  .playhead{position:absolute;top:0;bottom:0;width:1.5px;background:var(--playhead);opacity:.9;box-shadow:0 0 6px rgba(255,255,255,.5)}
+  .card .nm{font-size:12px;margin-top:8px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .mt{font-size:10px;color:var(--text3);margin-top:3px;font-variant-numeric:tabular-nums;display:flex;gap:6px}
+  .card.is-sel{border-color:rgba(56,189,248,.55);box-shadow:0 0 0 2px rgba(56,189,248,.18),inset 0 1px 0 rgba(255,255,255,.06)}
+  .card.is-sel::before{content:"";position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--accent)}
+  .card.is-hover{background:var(--card-hi);transform:translateY(-2px);border-color:var(--edge-2);
+    box-shadow:0 14px 30px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.14)}
+  .t-light .card.is-hover{box-shadow:0 14px 28px rgba(24,34,54,.16),inset 0 1px 0 rgba(255,255,255,.9)}
+  .card.is-hover::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:radial-gradient(150px 90px at var(--mx,72%) var(--my,18%),var(--spec),transparent 72%)
+  }
+  .card .pin{position:absolute;left:10px;top:40px;font-size:8px;color:var(--accent);opacity:.9}
+  /* ---------- player ---------- */
+  .player{
+    height:78px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;
+    border-top:1px solid var(--edge);background:var(--panel);backdrop-filter:blur(18px)
+  }
+  .transport{display:flex;align-items:center;gap:4px}
+  .tbtn{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:var(--text2)}
+  .tbtn:hover{background:var(--panel-2);color:var(--text)}
+  .tbtn.main{width:34px;height:34px;background:var(--accent);color:var(--on-accent);border-radius:10px;
+    box-shadow:0 6px 16px rgba(56,189,248,.35)}
+  .pwave{position:relative;width:300px;height:38px;border-radius:7px;background:rgba(0,0,0,.18);overflow:hidden;flex:none}
+  .t-light .pwave{background:rgba(20,30,50,.06)}
+  .ptime{font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ptime b{color:var(--text);font-weight:550}
+  .pctrl{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .pctrl .pill{height:26px;font-size:11px}
+  .vol{width:74px;height:3px;border-radius:3px;background:var(--edge-2);position:relative}
+  .vol i{position:absolute;left:0;top:0;bottom:0;width:58%;border-radius:3px;background:var(--text2)}
+  .vol u{position:absolute;left:58%;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--text);
+    box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  /* ---------- annotations ---------- */
+  .pin-n{
+    position:absolute;width:21px;height:21px;border-radius:50%;background:#38BDF8;color:#04121C;
+    font:700 11px/21px ui-sans-serif,system-ui;text-align:center;z-index:30;
+    box-shadow:0 3px 10px rgba(0,0,0,.55),0 0 0 2px rgba(7,8,11,.85)
+  }
+  .legend{margin-top:18px;width:100%;border-collapse:collapse;font-size:12px}
+  .legend th{text-align:left;font-weight:600;color:#AEB6C4;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px;letter-spacing:.4px}
+  .legend td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#8B94A5;vertical-align:top;line-height:1.6}
+  .legend td:first-child{color:#38BDF8;font-weight:700;width:38px;font-variant-numeric:tabular-nums}
+  .legend td:nth-child(2){color:#E9ECF2;width:170px}
+  .cap{margin-top:10px;font-size:11.5px;color:#6F7787;line-height:1.6}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+  .mat{position:relative;height:210px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+  .mat .lbl{position:absolute;left:14px;bottom:12px;font-size:12px;z-index:3}
+  .mat .lbl b{display:block;font-size:13px;margin-bottom:2px}
+  .mat .lbl span{color:#8B94A5;font-size:11px}
+  .mat .bg{position:absolute;inset:0}
+  .m0 .bg{background:linear-gradient(135deg,#1E293B,#0F172A 60%,#134E4A)}
+  .m1 .bg{background:linear-gradient(135deg,#312E81,#1E1B4B 60%,#155E75)}
+  .m2 .bg{background:linear-gradient(135deg,#0C4A6E,#1E1B4B 55%,#4C1D95)}
+  .mat .gl{position:absolute;inset:0;backdrop-filter:blur(24px) saturate(1.4);
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+    border-top:1px solid rgba(255,255,255,.22)}
+  .m2 .gl{backdrop-filter:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 16px 40px rgba(0,0,0,.5);border-radius:16px;margin:16px}
+  .m2 .gl::after{content:"";position:absolute;inset:0;border-radius:16px;
+    background:radial-gradient(180px 120px at 70% 20%,rgba(255,255,255,.22),transparent 70%)}
+
+  /* ---- theme-aware accent mixing (overrides) ---- */
+  .sb-row.on{background:color-mix(in srgb,var(--accent) 14%,transparent);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 32%,transparent)}
+  .search.on{border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+  .pill.on{background:color-mix(in srgb,var(--accent) 12%,transparent);
+    border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+  .card.is-sel{border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent),inset 0 1px 0 rgba(255,255,255,.06)}
+  .drop-lib.hot{border-color:var(--accent);color:var(--accent);
+    background:color-mix(in srgb,var(--accent) 8%,transparent)}
+  .tbtn.main{box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .stars i{font-style:normal;color:var(--accent)}
+  .stars em{font-style:normal;color:var(--text3);opacity:.4}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-head">
+    <h1>音匣 <span>SoundVault</span> · 界面线框</h1>
+    <p>配合《设计文档.md》阅读。所有画面均为 1280×800 实尺寸，使用你库里的真实目录与文件名（叮咚社古风 4.0）。玻璃为可交互真模糊（backdrop-filter），用于校对材质层级与可读性。</p>
+    <div class="meta-row">
+      <i>v0.1 · 设计稿</i><i>主题：深色 / 浅色</i><i>材质：Mica + 霜面 + 液态高光</i><i>主色 #38BDF8</i>
+    </div>
+    <div class="toc">
+      <a href="#s1">01 材质分层</a>
+      <a href="#s2">02 主界面·深色</a>
+      <a href="#s3">03 主界面·浅色</a>
+      <a href="#s4">04 结构线框</a>
+      <a href="#s5">05 关键状态</a>
+      <a href="#s6">06 组件</a>
+      <a href="#s7">07 主题编辑器</a>
+      <a href="#s8">08 批量导出</a>
+      <a href="#s9">09 度量</a>
+    </div>
+  </div>
+
+  <!-- ============ 01 材质 ============ -->
+  <section id="s1">
+    <h2><b>01</b> 材质分层 —— 玻璃只做容器，内容永远是主角</h2>
+    <p class="desc">三层材质各司其职。L0 是系统级 Mica（透出桌面），几乎零成本；L1 是自绘霜面，只用在左栏 / 顶栏 / 试听条这类"容器"上；L2 是卡片与按钮的液态感，靠边光和高光而非模糊。</p>
+    <div class="g3">
+      <div class="mat m0">
+        <div class="bg"></div>
+        <div class="lbl"><b>L0 · 底板 Mica</b><span>窗口整体 · 系统级 · 0.2ms</span></div>
+      </div>
+      <div class="mat m1">
+        <div class="bg"></div><div class="gl"></div>
+        <div class="lbl"><b>L1 · 霜面 Frost</b><span>左栏 / 顶栏 / 试听条 · 模糊 18px</span></div>
+      </div>
+      <div class="mat m2">
+        <div class="bg"></div><div class="gl"></div>
+        <div class="lbl"><b>L2 · 液态 Liquid</b><span>卡片 / 按钮 · 高光 0–18% · 不模糊</span></div>
+      </div>
+    </div>
+    <p class="cap">判据：如果一层玻璃背后没有"值得被模糊的内容"，就不要给它加模糊 —— 那是纯损耗。</p>
+  </section>
+
+  <!-- ============ 02 深色 ============ -->
+  <section id="s2">
+    <h2><b>02</b> 主界面 · 深色（默认）</h2>
+    <p class="desc">非叶节点被选中时的形态：上方是子文件夹卡片，下方是直属音效卡片。第 4 张卡片处于 <b>悬停试听</b> 状态，可见指针跟随高光、播放进度与上浮。</p>
+    <div class="canvas t-dark" id="canvas-dark"></div>
+    <table class="legend">
+      <tr><th>#</th><th>区域</th><th>规格与行为</th></tr>
+      <tr><td>1</td><td>标题栏 38px</td><td>Mica 透出桌面；库切换用胶囊标签；右侧主题/置顶/设置/窗口键</td></tr>
+      <tr><td>2</td><td>搜索框 300×32</td><td>聚焦时主色描边 + 3px 外发光；支持中文、全拼、首字母、过滤语法</td></tr>
+      <tr><td>3</td><td>面包屑</td><td>任意层可点；当前层加粗；`Alt+↑` 上一级</td></tr>
+      <tr><td>4</td><td>深度开关</td><td>开 = 平铺所有后代音效；关 = 只显示直属 + 子文件夹卡片</td></tr>
+      <tr><td>5</td><td>左栏 244px</td><td>L1 霜面；快捷入口 → 库树 → 底部"拖入新建库"；节点右侧显示计数</td></tr>
+      <tr><td>6</td><td>选中态</td><td>主色 13% 底 + 1px 主色边 + 左侧 3px 竖条（不只靠颜色）</td></tr>
+      <tr><td>7</td><td>子文件夹卡片</td><td>74px 高；缩略色块 + 名称 + 数量；点击下钻</td></tr>
+      <tr><td>8</td><td>音效卡片</td><td>232×132；波形 52px + 名称 + 时长/采样率/格式；右上角标签点与星级</td></tr>
+      <tr><td>9</td><td>悬停试听</td><td>140ms 防抖后发声；卡片上浮 2px；高光跟随指针；波形下 2px 进度</td></tr>
+      <tr><td>10</td><td>多选态</td><td>2px 主色环 + 左侧竖条；拖拽时 ghost 显示数量</td></tr>
+      <tr><td>11</td><td>试听条 78px</td><td>L1 霜面；播放控制 + 波形 + 循环模式 + 音量 + 响度归一化 + 设备</td></tr>
+      <tr><td>12</td><td>拖入区</td><td>虚线框；拖拽悬停时变主色 + 8% 底</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 03 浅色 ============ -->
+  <section id="s3">
+    <h2><b>03</b> 主界面 · 浅色</h2>
+    <p class="desc">浅色不是深色的反相：面板白度提高到 60–78%，边光改为亮白描边，阴影更柔更浅；波形改中性灰蓝，避免在浅底上"发飘"。</p>
+    <div class="canvas t-light" id="canvas-light"></div>
+    <p class="cap">浅色主题下的关键约束：卡片不透明度不低于 62%，否则波形与文字会与背景糊在一起。</p>
+  </section>
+
+  <style>
+  /* ============ 04-09 追加样式 ============ */
+  .sb-hint{font-size:11px;color:var(--text3);line-height:1.65;padding:6px 10px 12px}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px}
+  .empty-art{position:relative;width:136px;height:92px;margin-bottom:26px}
+  .empty-art span{position:absolute;border-radius:12px;border:1px solid var(--edge-2);background:var(--card)}
+  .empty-art span:nth-child(1){left:0;right:26px;top:28px;height:56px;transform:rotate(-7deg)}
+  .empty-art span:nth-child(2){left:26px;right:0;top:20px;height:56px;transform:rotate(6deg)}
+  .empty-art span:nth-child(3){left:12px;right:12px;top:8px;height:62px;background:var(--card-hi);
+    box-shadow:0 12px 26px rgba(0,0,0,.3);border-color:var(--edge)}
+  .empty h4{font-size:18px;font-weight:600;margin-bottom:9px}
+  .empty p{font-size:12.5px;color:var(--text2);line-height:1.8;margin-bottom:22px}
+  .empty-btns{display:flex;gap:10px}
+  .btn{height:34px;padding:0 17px;border-radius:9px;display:grid;place-items:center;font-size:12.5px;
+    border:1px solid var(--edge);background:var(--panel);color:var(--text)}
+  .btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:550;
+    box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 32%,transparent)}
+  .empty-tip{margin-top:20px;font-size:10.5px;color:var(--text3);letter-spacing:.4px}
+  .hitbar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .chip{font-size:11px;padding:4px 10px;border-radius:999px;background:var(--panel);
+    border:1px solid var(--edge);color:var(--text2)}
+  .chip.on{background:color-mix(in srgb,var(--accent) 14%,transparent);
+    border-color:color-mix(in srgb,var(--accent) 42%,transparent);color:var(--text)}
+  .hitfind{margin-left:auto;font-size:11px;color:var(--text3)}
+  .typed{color:var(--text);font-size:12.5px}
+  .caret{display:inline-block;width:1.5px;height:14px;background:var(--accent);margin-left:2px;animation:blink 1.2s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .idle-tip{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text3);padding-left:8px}
+
+  .wire{width:1280px;border-radius:18px;padding:16px;background:#0A0C10;border:1px dashed rgba(255,255,255,.16)}
+  .wframe{display:flex;flex-direction:column;gap:10px;height:768px}
+  .wbox{border:1px dashed rgba(255,255,255,.26);border-radius:10px;display:flex;align-items:center;gap:14px;
+    padding:0 15px;font:11px/1.5 "Cascadia Mono",Consolas,monospace;color:#8B94A5;letter-spacing:.2px}
+  .wmid{flex:1;display:flex;gap:10px;min-height:0}
+  .wcol{border:1px dashed rgba(255,255,255,.26);border-radius:10px;padding:13px 15px;
+    font:11px/1.85 "Cascadia Mono",Consolas,monospace;color:#8B94A5}
+  .wcol.grow{flex:1;display:flex;flex-direction:column}
+  .wnote{color:#38BDF8}
+  .wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+  .wcell{border:1px dashed rgba(255,255,255,.2);border-radius:8px;height:112px;position:relative}
+  .wcell::after{content:attr(data-l);position:absolute;left:8px;bottom:7px;font:10px/1 monospace;color:#6F7787}
+  .wfold{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 4px}
+  .wfold div{border:1px dashed rgba(255,255,255,.2);border-radius:8px;height:62px}
+
+  .ghostdemo{display:flex;gap:40px;align-items:center;padding:34px 40px;border-radius:16px;
+    background:radial-gradient(90% 120% at 20% 0%,#16203A,#090B10 62%);border:1px solid rgba(255,255,255,.07)}
+  .ghost{position:relative;width:168px;border-radius:12px;padding:9px;background:rgba(28,33,44,.82);
+    border:1px solid rgba(255,255,255,.18);box-shadow:0 22px 48px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.18);
+    transform:rotate(-3deg)}
+  .ghost .gwave{height:44px;border-radius:7px;background:rgba(0,0,0,.3);overflow:hidden;position:relative}
+  .ghost .gnm{font-size:11.5px;color:#E9ECF2;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ghost .gmt{font-size:9.5px;color:#8B94A5;margin-top:3px}
+  .ghost .gnum{position:absolute;right:-9px;top:-9px;min-width:22px;height:22px;border-radius:11px;
+    background:#38BDF8;color:#04121C;font:700 11px/22px ui-sans-serif;text-align:center;padding:0 6px;
+    box-shadow:0 4px 12px rgba(0,0,0,.5)}
+  .ghost-notes{font-size:12px;color:#8B94A5;line-height:2}
+  .ghost-notes b{color:#E9ECF2;font-weight:550}
+  .ghost-notes code{font:11px/1.6 "Cascadia Mono",Consolas,monospace;color:#7DD3FC;
+    background:rgba(56,189,248,.10);padding:1px 6px;border-radius:5px}
+
+  .spec{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .sp{padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025)}
+  .sp h5{font-size:10.5px;color:#8B94A5;margin-bottom:14px;letter-spacing:.8px;font-weight:600;text-transform:uppercase}
+  .sp .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .lrow{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:9px;background:var(--card);
+    border:1px solid var(--edge)}
+  .lrow .lw{width:96px;height:22px;border-radius:5px;background:rgba(0,0,0,.2);overflow:hidden;position:relative;flex:none}
+  .lrow .ln{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .lm{margin-left:auto;font-size:10px;color:var(--text3);white-space:nowrap}
+  .sw{width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.16)}
+  .ib{height:30px;border-radius:8px;border:1px solid var(--edge);background:rgba(0,0,0,.22);
+    padding:0 10px;font-size:11.5px;color:var(--text);display:flex;align-items:center;min-width:120px}
+  .ib.focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.14)}
+  .ib.err{border-color:#F87171;box-shadow:0 0 0 3px rgba(248,113,113,.12)}
+  .toast{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:10px;
+    background:rgba(24,28,38,.92);border:1px solid rgba(255,255,255,.12);font-size:11.5px;
+    box-shadow:0 14px 34px rgba(0,0,0,.5);backdrop-filter:blur(16px)}
+
+  .modalscene{width:1280px;height:620px;border-radius:18px;overflow:hidden;position:relative;
+    display:grid;place-items:center;background:radial-gradient(110% 120% at 28% 6%,#1A2440,#090B10 62%)}
+  .modal{width:672px;border-radius:18px;background:rgba(19,23,31,.88);backdrop-filter:blur(30px) saturate(155%);
+    border:1px solid rgba(255,255,255,.13);box-shadow:0 40px 100px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.14);
+    color:#E9ECF2;overflow:hidden}
+  .mhead{height:52px;display:flex;align-items:center;gap:10px;padding:0 18px;
+    border-bottom:1px solid rgba(255,255,255,.08);font-size:13.5px;font-weight:600}
+  .mhead span{margin-left:auto;font-size:11px;color:#8B94A5;font-weight:400}
+  .mbody{padding:18px}
+  .mfoot{height:58px;display:flex;align-items:center;gap:10px;padding:0 18px;border-top:1px solid rgba(255,255,255,.08)}
+  .mfoot .sp2{flex:1}
+  .flabel{font-size:10.5px;color:#8B94A5;letter-spacing:.5px;margin-bottom:7px}
+  .frow{display:flex;gap:10px}
+  .cols2{display:grid;grid-template-columns:150px 1fr;gap:20px}
+  .wheel{width:138px;height:138px;border-radius:50%;position:relative;flex:none;
+    background:conic-gradient(#FF3B30,#FFD60A,#32D74B,#64D2FF,#0A84FF,#BF5AF2,#FF3B30)}
+  .wheel::after{content:"";position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#fff 0%,rgba(255,255,255,.92) 18%,transparent 72%)}
+  .wheel i{position:absolute;left:62%;top:26%;width:14px;height:14px;border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.5);z-index:2;transform:translate(-50%,-50%)}
+  .slider{height:3px;border-radius:3px;background:rgba(255,255,255,.14);position:relative;margin:12px 0 20px}
+  .slider i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#38BDF8}
+  .slider u{position:absolute;top:-5px;width:13px;height:13px;border-radius:50%;background:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.5)}
+  .slabel{display:flex;justify-content:space-between;font-size:11px;color:#8B94A5}
+  .slabel b{color:#E9ECF2;font-weight:500;font-variant-numeric:tabular-nums}
+  .prevstrip{display:flex;gap:6px;height:44px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+  .prevstrip span{flex:1}
+  .mtab{width:100%;border-collapse:collapse;font-size:11.5px}
+  .mtab th{text-align:left;color:#8B94A5;font-weight:500;font-size:10.5px;padding:6px 8px;
+    border-bottom:1px solid rgba(255,255,255,.08)}
+  .mtab td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:#C8CFDA}
+  .mtab td:first-child{color:#E9ECF2}
+  .opt{display:flex;align-items:center;gap:10px;height:32px;font-size:12px;color:#C8CFDA}
+  .opt .ck{width:15px;height:15px;border-radius:4px;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:9px}
+  .opt .ck.on{background:#38BDF8;border-color:#38BDF8;color:#04121C}
+  .radio{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.3)}
+  .radio.on{border-color:#38BDF8;box-shadow:inset 0 0 0 3px #38BDF8}
+
+  .toks{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:20px}
+  .tok{padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+  .tok h6{font-size:10.5px;color:#8B94A5;letter-spacing:.7px;margin-bottom:10px;font-weight:600}
+  .tok table{width:100%;border-collapse:collapse;font-size:11.5px}
+  .tok td{padding:4px 0;color:#9AA3B2;vertical-align:middle}
+  .tok td:first-child{width:96px;color:#C8CFDA;font-family:"Cascadia Mono",Consolas,monospace;font-size:11px}
+  .tok .chipc{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:7px;vertical-align:-2px;
+    border:1px solid rgba(255,255,255,.14)}
+</style>
+
+  <!-- ============ 04 结构线框 ============ -->
+  <section id="s4">
+    <h2><b>04</b> 结构线框 —— 只谈尺寸与分区，不谈颜色</h2>
+    <p class="desc">所有间距落在 4pt 网格上；左栏可拖拽 200–360px；网格列数随宽度自适应 3–6 列，卡片最小 180px。</p>
+    <div class="canvas">
+      <div class="wire">
+        <div class="wframe">
+          <div class="wbox" style="height:38px">① 标题栏 38px　—　Mica · 库标签 · 材质/置顶/设置 · 窗口键</div>
+          <div class="wbox" style="height:54px">② 工具栏 54px　—　搜索 300×32 · 面包屑 · 排序 · 视图切换 · 深度开关</div>
+          <div class="wmid">
+            <div class="wcol" style="width:244px">
+              ③ 左栏 244 <span class="wnote">(200–360 可拖)</span><br>
+              　快捷入口 4×30<br>
+              　库节点 29<br>
+              　树行 27 / 层进 13<br>
+              　…<br>
+              　拖入区 36 <span class="wnote">(钉底)</span>
+            </div>
+            <div class="wcol grow">
+              ④ 内容区 <span class="wnote">padding 22 / gap 14</span>
+              <div class="wfold"><div></div><div></div><div></div><div></div></div>
+              子文件夹卡片 4 列 · 高 74
+              <div class="wgrid">
+                <div class="wcell" data-l="232×132"></div>
+                <div class="wcell" data-l="波形 52"></div>
+                <div class="wcell" data-l="名称 13"></div>
+                <div class="wcell" data-l="元信息 10"></div>
+                <div class="wcell" data-l=""></div>
+                <div class="wcell" data-l=""></div>
+                <div class="wcell" data-l=""></div>
+                <div class="wcell" data-l=""></div>
+              </div>
+            </div>
+          </div>
+          <div class="wbox" style="height:78px">⑤ 试听条 78px　—　3×30 控制 · 波形 300×38 · 时间码 · 循环 · 音量 · 归一化 · 设备</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 关键状态 ============ -->
+  <section id="s5">
+    <h2><b>05</b> 关键状态</h2>
+    <p class="desc">搜索态与空态是产品"第一次见面"和"每天都在用"的两个极端，必须单独设计；拖拽幽灵是唯一会离开窗口的界面元素。</p>
+
+    <div class="canvas t-dark" id="canvas-search" style="margin-top:26px"></div>
+    <p class="cap">搜索态：搜索框进入聚焦态（主色描边 + 外发光），面包屑切换为"搜索结果"，命中文件夹以胶囊呈现，结果按相关度排序。</p>
+
+    <div class="canvas t-dark" id="canvas-empty" style="margin-top:34px"></div>
+    <p class="cap">空态：不讲功能，只讲一句动作指令 + 两个出口；底部明确"不会移动、不会修改你的文件"，降低首次导入的心理成本。</p>
+
+    <div class="canvas" style="margin-top:34px">
+      <div class="ghostdemo">
+        <div class="ghost">
+          <div class="gnum">3</div>
+          <div class="gwave"><svg class="wave" data-seed="7" data-kind="impulse" data-w="168" style="color:#7DD3FC"></svg></div>
+          <div class="gnm">拔刀相向</div>
+          <div class="gmt">2.41s · 96k · WAV</div>
+        </div>
+        <div class="ghost-notes">
+          <b>拖拽幽灵 140×88</b>（此处放大示意）<br>
+          载荷：<code>DataFormats.FileDrop</code> → 绝对路径数组<br>
+          多选时右上角显示数量徽章；起拖阈值 <b>4px</b><br>
+          拖拽中按 <b>Esc</b> 取消；松手前不改变任何文件
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 06 组件 ============ -->
+  <section id="s6">
+    <h2><b>06</b> 组件库</h2>
+    <p class="desc">同一套组件在深/浅色下共用结构与尺寸，只换 token。选中态一律"颜色 + 形状"双编码。</p>
+    <div class="t-dark">
+      <div class="spec">
+        <div class="sp"><h5>音效卡片 · 默认 / 悬停 / 选中</h5><div class="row" style="gap:8px"></div>
+          <div class="row" id="spec-cards"></div>
+        </div>
+        <div class="sp"><h5>列表视图行</h5>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="lrow"><div class="lw"><svg class="wave" data-seed="11" data-kind="impulse" data-w="96"></svg></div>
+              <span class="ln">001_拔刀相向</span><span class="lm">2.41s · 96k</span></div>
+            <div class="lrow" style="border-color:rgba(56,189,248,.45)"><div class="lw"><svg class="wave" data-seed="12" data-kind="burst" data-w="96"></svg></div>
+              <span class="ln">008_兵器格挡</span><span class="lm">1.82s · 96k</span></div>
+            <div class="lrow"><div class="lw"><svg class="wave" data-seed="13" data-kind="whoosh" data-w="96"></svg></div>
+              <span class="ln">110_接过宝剑拔剑查看</span><span class="lm">2.90s · 96k</span></div>
+          </div>
+        </div>
+        <div class="sp"><h5>树节点 · 默认 / 选中</h5>
+          <div class="sb-tree">
+            <div class="sb-row d1"><span class="ic"></span>刀剑动作<span class="n">12</span></div>
+            <div class="sb-row d2">拔刀<span class="n">4</span></div>
+            <div class="sb-row d2 on"><span class="ic"></span>格挡<span class="n">3</span></div>
+          </div>
+        </div>
+        <div class="sp"><h5>标签 / 评分 / 收藏</h5>
+          <div class="row" style="margin-bottom:12px">
+            <span class="chip on">#古风</span><span class="chip">#武侠</span><span class="chip">#干声</span>
+          </div>
+          <div class="row">
+            <span class="stars" style="font-size:13px"><i>★★★★</i><em>★</em></span>
+            <span style="font-size:11px;color:var(--text3)">评分 4/5</span>
+          </div>
+        </div>
+        <div class="sp"><h5>按钮</h5>
+          <div class="row"><span class="btn primary">导出 20 个</span><span class="btn">取消</span><span class="btn">次要操作</span></div>
+        </div>
+        <div class="sp"><h5>输入 · 默认 / 聚焦 / 错误</h5>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="ib">渲染模板 {index:02}_{name}</div>
+            <div class="ib focus">拔刀</div>
+            <div class="ib err">目标目录不存在</div>
+          </div>
+        </div>
+        <div class="sp"><h5>Toast（索引进度）</h5>
+          <div class="toast"><span style="color:#38BDF8">●</span>正在建立索引 217 / 3,412<span style="margin-left:auto;color:#8B94A5">取消</span></div>
+        </div>
+        <div class="sp"><h5>主色派生（同一主色的 5 档）</h5>
+          <div class="row" id="spec-shades"></div>
+        </div>
+        <div class="sp"><h5>播放头 / 循环区 / 波形配色</h5>
+          <div class="wave-wrap" style="height:56px">
+            <svg class="wave" data-seed="21" data-kind="sustain" data-w="200"></svg>
+            <svg class="wave played" data-seed="21" data-kind="sustain" data-w="200" style="--p:46%"></svg>
+            <div class="playhead" style="left:46%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 主题编辑器 ============ -->
+  <section id="s7">
+    <h2><b>07</b> 主题编辑器 —— RGB / HEX / HSV 三向互通</h2>
+    <p class="desc">用户只挑一个主色，其余 12 个语义色由 OKLCH 自动派生；玻璃强度、模糊半径、圆角都可单独调。下方预览条实时反映"主色 → 波形 → 播放头"的连锁变化。</p>
+    <div class="canvas">
+      <div class="modalscene">
+        <div class="modal t-dark">
+          <div class="mhead">外观与主题 <span>深色 · 跟随系统已关闭</span></div>
+          <div class="mbody">
+            <div class="cols2">
+              <div>
+                <div class="wheel"><i></i></div>
+                <div class="flabel" style="margin-top:14px">预设</div>
+                <div class="row" style="display:flex;gap:7px">
+                  <span class="sw" style="background:#38BDF8"></span>
+                  <span class="sw" style="background:#8B5CF6"></span>
+                  <span class="sw" style="background:#A3E635"></span>
+                  <span class="sw" style="background:#D9A066"></span>
+                  <span class="sw" style="background:#F5F7FA"></span>
+                  <span class="sw" style="background:#111418"></span>
+                </div>
+              </div>
+              <div>
+                <div class="flabel">HEX</div>
+                <div class="ib" style="margin-bottom:12px">#38BDF8</div>
+                <div class="flabel">RGB</div>
+                <div class="frow" style="margin-bottom:12px">
+                  <div class="ib" style="min-width:0;flex:1">56</div>
+                  <div class="ib" style="min-width:0;flex:1">189</div>
+                  <div class="ib" style="min-width:0;flex:1">248</div>
+                </div>
+                <div class="flabel">HSV</div>
+                <div class="frow">
+                  <div class="ib" style="min-width:0;flex:1">199°</div>
+                  <div class="ib" style="min-width:0;flex:1">77%</div>
+                  <div class="ib" style="min-width:0;flex:1">97%</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px">
+              <div class="slabel"><span>玻璃强度</span><b>70%</b></div>
+              <div class="slider"><i style="width:70%"></i><u style="left:69%"></u></div>
+              <div class="slabel"><span>模糊半径</span><b>18 px</b></div>
+              <div class="slider"><i style="width:56%"></i><u style="left:55%"></u></div>
+              <div class="slabel"><span>圆角</span><b>12 px</b></div>
+              <div class="slider"><i style="width:40%"></i><u style="left:39%"></u></div>
+            </div>
+
+            <div class="flabel">实时预览</div>
+            <div class="prevstrip">
+              <span style="background:#0A0C10"></span>
+              <span style="background:#12151C"></span>
+              <span style="background:#38BDF8"></span>
+              <span style="background:#0EA5E9"></span>
+              <span style="background:#A78BFA"></span>
+              <span style="background:#E9ECF2"></span>
+            </div>
+          </div>
+          <div class="mfoot">
+            <span class="btn">导入 .theme.json</span>
+            <span class="btn">导出主题</span>
+            <span class="sp2"></span>
+            <span class="btn">取消</span><span class="btn primary">应用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 08 批量导出 ============ -->
+  <section id="s8">
+    <h2><b>08</b> 批量导出</h2>
+    <p class="desc">交付场景：选中一批 → 复制到项目目录 → 生成清单。默认不覆盖、不移动原文件。</p>
+    <div class="canvas">
+      <div class="modalscene">
+        <div class="modal t-dark" style="width:700px">
+          <div class="mhead">导出 20 个音效 <span>共 186 MB · 96 kHz / 32 bit</span></div>
+          <div class="mbody">
+            <div class="flabel">目标目录</div>
+            <div class="ib" style="margin-bottom:14px">H:\项目\2026_武侠短片\音频\SFX</div>
+            <div class="flabel">命名</div>
+            <div class="frow" style="margin-bottom:12px">
+              <div class="ib focus" style="flex:1">模板：{index:02}_{name}</div>
+              <div class="ib" style="width:96px">01_拔刀相向</div>
+            </div>
+            <div style="display:flex;gap:26px">
+              <div>
+                <div class="opt"><span class="ck on">✓</span>生成 CSV 清单</div>
+                <div class="opt"><span class="ck on">✓</span>扁平化目录</div>
+              </div>
+              <div>
+                <div class="opt"><span class="radio on"></span>冲突时重命名</div>
+                <div class="opt"><span class="radio"></span>跳过 / 覆盖</div>
+              </div>
+            </div>
+            <div class="flabel" style="margin-top:16px">清单预览（CSV）</div>
+            <table class="mtab">
+              <tr><th>序号</th><th>文件名</th><th>显示名</th><th>时长</th><th>采样率</th><th>标签</th><th>评分</th></tr>
+              <tr><td>01</td><td>01_拔刀相向.wav</td><td>拔刀相向</td><td>2.41</td><td>96000</td><td>古风|武侠</td><td>5</td></tr>
+              <tr><td>02</td><td>02_兵器格挡.wav</td><td>兵器格挡</td><td>1.82</td><td>96000</td><td>古风|武侠</td><td>4</td></tr>
+              <tr><td>03</td><td>03_接过宝剑拔剑查看.wav</td><td>接过宝剑拔剑查看</td><td>2.90</td><td>96000</td><td>古风</td><td>3</td></tr>
+            </table>
+          </div>
+          <div class="mfoot">
+            <span class="btn">在资源管理器中打开</span>
+            <span class="sp2"></span>
+            <span class="btn">取消</span><span class="btn primary">开始导出</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 09 度量 ============ -->
+  <section id="s9">
+    <h2><b>09</b> 设计度量 token</h2>
+    <p class="desc">以下数值是代码里的常量，不是"参考值"。改主题只改 token，不改组件。</p>
+    <div class="toks">
+      <div class="tok"><h6>颜色 · 深色</h6><table>
+        <tr><td>--bg</td><td><span class="chipc" style="background:#0A0C10"></span>#0A0C10</td></tr>
+        <tr><td>--win</td><td><span class="chipc" style="background:#12151c"></span>rgba(9,11,15,.60) + blur 34</td></tr>
+        <tr><td>--text</td><td><span class="chipc" style="background:#E9ECF2"></span>#E9ECF2</td></tr>
+        <tr><td>--text-2</td><td><span class="chipc" style="background:#9AA3B2"></span>#9AA3B2</td></tr>
+        <tr><td>--accent</td><td><span class="chipc" style="background:#38BDF8"></span>#38BDF8</td></tr>
+        <tr><td>--wave</td><td><span class="chipc" style="background:#A0ACC0"></span>rgba(160,172,192,.55)</td></tr>
+      </table></div>
+      <div class="tok"><h6>颜色 · 浅色</h6><table>
+        <tr><td>--bg</td><td><span class="chipc" style="background:#EAEDF3"></span>#EAEDF3</td></tr>
+        <tr><td>--win</td><td><span class="chipc" style="background:#FBFCFE"></span>rgba(251,252,254,.80) + blur 34</td></tr>
+        <tr><td>--text</td><td><span class="chipc" style="background:#12161F"></span>#12161F</td></tr>
+        <tr><td>--text-2</td><td><span class="chipc" style="background:#49515F"></span>#49515F</td></tr>
+        <tr><td>--accent</td><td><span class="chipc" style="background:#0369A1"></span>#0369A1</td></tr>
+        <tr><td>--wave</td><td><span class="chipc" style="background:#465268"></span>rgba(70,82,104,.50)</td></tr>
+      </table></div>
+      <div class="tok"><h6>间距 · 圆角 · 尺寸</h6><table>
+        <tr><td>--space</td><td>4 / 8 / 12 / 16 / 24 / 32</td></tr>
+        <tr><td>--r-s</td><td>8 px（控件）</td></tr>
+        <tr><td>--r-m</td><td>12 px（卡片）</td></tr>
+        <tr><td>--r-l</td><td>16 px（面板）</td></tr>
+        <tr><td>--r-xl</td><td>20 px（窗口）</td></tr>
+        <tr><td>标题栏/工具栏/试听条</td><td>38 / 54 / 78 px</td></tr>
+        <tr><td>左栏</td><td>244 px（200–360）</td></tr>
+      </table></div>
+      <div class="tok"><h6>材质参数</h6><table>
+        <tr><td>L0 Mica</td><td>底 86–92% · 系统级模糊</td></tr>
+        <tr><td>L1 Frost</td><td>blur 18px · saturate 1.5 · 色层 62–78%</td></tr>
+        <tr><td>边光</td><td>1px 白 8%（深）/ 95%（浅）</td></tr>
+        <tr><td>高光</td><td>radial 150×90 · 0→18% · 200ms</td></tr>
+        <tr><td>阴影 s2</td><td>0 14px 30px rgba(0,0,0,.38)</td></tr>
+        <tr><td>预算</td><td>玻璃 ≤2.0ms/帧 · ≤3 个模糊面板</td></tr>
+      </table></div>
+      <div class="tok"><h6>动效</h6><table>
+        <tr><td>hover</td><td>120 ms</td></tr>
+        <tr><td>面板</td><td>180 ms</td></tr>
+        <tr><td>模态</td><td>240 ms</td></tr>
+        <tr><td>曲线</td><td>cubic-bezier(.2,.8,.2,1)</td></tr>
+        <tr><td>防抖</td><td>悬停试听 140 ms</td></tr>
+      </table></div>
+      <div class="tok"><h6>字体</h6><table>
+        <tr><td>中文</td><td>Microsoft YaHei UI</td></tr>
+        <tr><td>西文</td><td>Segoe UI Variable Text</td></tr>
+        <tr><td>数字</td><td>tabular-nums（等宽对齐）</td></tr>
+        <tr><td>字号</td><td>10.5 / 11 / 12 / 13 / 17 / 18</td></tr>
+        <tr><td>行高</td><td>1.45</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+
+  <script>
+/* ============================================================
+   音匣 SoundVault — wireframe renderer
+   所有画面由同一模板生成，便于深/浅色与状态切换的一致性
+   ============================================================ */
+const ICON = {
+  search:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="M10.3 10.3L14 14"/></svg>',
+  play:'<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2l8.2 4.8-8.2 4.8z"/></svg>',
+  pause:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>',
+  prev:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M12 3.5v9L5 8zM4 3.5h1.6v9H4z"/></svg>',
+  stop:'<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.6"/></svg>',
+  grid:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>',
+  list:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="2" rx="1"/><rect x="2" y="7" width="12" height="2" rx="1"/><rect x="2" y="11" width="12" height="2" rx="1"/></svg>',
+  gear:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1L3.5 12.5"/></svg>',
+  theme:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 0 0 11.2z" fill="currentColor" stroke="none"/></svg>',
+  pinwin:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h4l-.7 4.2 2.7 2.6H4l2.7-2.6z"/><path d="M8 8.8V14"/></svg>',
+  folder:'<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4.2c0-.6.5-1 1-1h3l1.2 1.6H13c.6 0 1 .5 1 1v6.2c0 .6-.4 1-1 1H3c-.5 0-1-.4-1-1z"/></svg>',
+  all:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>',
+  clock:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.6"/><path d="M8 4.6V8l2.4 1.6"/></svg>',
+  star:'<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.8l1.9 4 4.3.5-3.2 3 .9 4.3L8 11.5 4.1 13.6l.9-4.3-3.2-3 4.3-.5z"/></svg>',
+  hash:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.4 2.5L4.9 13.5M11.1 2.5L9.6 13.5M2.6 6h11M2 10h11"/></svg>'
+};
+
+const LIB_A = '叮咚社版权作品：古风音效4.0';
+const LIB_B = 'BOOM Library · Cinematic Hits';
+const TREE = [
+  ['刀剑动作','12',1],['拔刀','4',2],['格挡','3',2],['收刀','5',2],
+  ['单人动作','28',1],['古代环境音-市井民间类','9',1],['古代环境音-战争类','14',1],
+  ['古代百姓生活物品','21',1],['多人动作','17',1],['官府与牢狱相关','11',1],['银两','6',1]
+];
+const FOLDERS = [
+  ['拔刀','4 个音效','linear-gradient(140deg,#38BDF8,#1D4ED8)'],
+  ['格挡','3 个音效','linear-gradient(140deg,#A78BFA,#6D28D9)'],
+  ['收刀','5 个音效','linear-gradient(140deg,#FBBF24,#B45309)']
+];
+const ASSETS = [
+  ['001','拔刀相向','2.41s','impulse',5,'#38BDF8'],
+  ['007','匕首扔桌上一把短刀扔到桌上','3.10s','burst',4,'#A78BFA'],
+  ['008','兵器格挡-刀剑挡住击来的长枪','1.82s','impulse',4,'#38BDF8'],
+  ['027','大侠夺过对手的兵器插在地上','4.20s','decay',5,'#FBBF24'],
+  ['110','接过宝剑拔剑查看','2.90s','whoosh',3,'#38BDF8'],
+  ['130','两支箭射中靶心的瞬间','1.24s','impulse',4,'#F472B6'],
+  ['131','撩起袖子掏出匕首','2.20s','burst',3,'#38BDF8'],
+  ['142','男人练刀-户外练习大刀法','6.40s','sustain',4,'#34D399'],
+  ['144','男人扔下手中的朴刀','2.01s','decay',3,'#38BDF8'],
+  ['168','身配刀剑的将军上前一步','3.30s','noise',4,'#A78BFA'],
+  ['194','一把宝刀放到桌上','2.60s','impulse',5,'#38BDF8'],
+  ['197','一刀砍在酒桌边男人的脖子上','2.10s','burst',2,'#F472B6']
+];
+
+function rng(seed){ let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+function waveSvg(seed, kind, w, progress){
+  const cls = progress ? 'wave played' : 'wave';
+  const style = progress ? ' style="--p:' + progress + '"' : '';
+  return '<svg class="' + cls + '"' + style + ' data-seed="' + seed + '" data-kind="' + kind + '" data-w="' + w + '" preserveAspectRatio="none"></svg>';
+}
+
+function drawWaves(scope){
+  scope.querySelectorAll('svg.wave').forEach(svg => {
+    if (svg.dataset.done) return;
+    const seed = +(svg.dataset.seed || 1), kind = svg.dataset.kind || 'decay';
+    const w = +(svg.dataset.w || 200), n = Math.max(22, Math.round(w / 3.4));
+    svg.setAttribute('viewBox', '0 0 ' + n + ' 64');
+    const r = rng(seed * 7919 + 13);
+    let out = '';
+    for (let i = 0; i < n; i++){
+      const t = i / (n - 1);
+      let e;
+      switch(kind){
+        case 'impulse': e = Math.exp(-t * 5.5) * 0.95; break;
+        case 'decay':   e = Math.pow(1 - t, 1.15) * 0.88; break;
+        case 'sustain': e = 0.44 + 0.22 * Math.sin(t * Math.PI * 1.15); break;
+        case 'burst':   e = (t > 0.10 && t < 0.86) ? 0.82 : 0.06; break;
+        case 'noise':   e = 0.38 + 0.18 * r(); break;
+        case 'whoosh':  e = Math.pow(Math.sin(t * Math.PI), 1.5) * 0.9; break;
+        default:        e = 0.5;
+      }
+      if (w < 150) e = 0.44 + 0.56 * e;   // 迷你波形收敛包络，避免读成播放三角
+      const a = Math.max(0.05, Math.min(1, e * (0.78 + 0.34 * r())));
+      const h = Math.max(1.1, a * 26);
+      out += '<rect x="' + (i + 0.22) + '" y="' + (32 - h).toFixed(2) + '" width="0.56" height="' + (h * 2).toFixed(2) + '" rx="0.28" fill="currentColor"/>';
+    }
+    svg.innerHTML = out;
+    svg.dataset.done = '1';
+  });
+}
+
+function renderApp(opt){
+  opt = opt || {};
+  const hoverIdx = opt.hover === undefined ? 3 : opt.hover;
+  const mode = opt.mode || 'folder';
+  const isSearch = mode === 'search', isEmpty = mode === 'empty';
+
+  const treeHtml = TREE.map(([name, n, d]) =>
+    '<div class="sb-row d' + d + (name === '刀剑动作' ? ' on' : '') + '"' +
+    (name === '刀剑动作' ? ' data-pin="6"' : '') + '>' +
+    '<span class="ic">' + (d === 1 ? ICON.folder : '') + '</span>' + name +
+    '<span class="n">' + n + '</span></div>').join('');
+
+  const foldersHtml = FOLDERS.map(([nm, ct, g]) =>
+    '<div class="fcard" data-pin="' + (nm === '拔刀' ? '7' : '') + '">' +
+    '<div class="thumb" style="background:' + g + '"></div>' +
+    '<div><div class="nm">' + nm + '</div><div class="ct">' + ct + '</div></div></div>').join('');
+
+  const pool = isSearch ? [0, 3, 4] : ASSETS.map((_, i) => i);
+  const cardsHtml = pool.map((pi, k) => {
+    const a = ASSETS[pi];
+    const [idx, nm, dur, kind, star, tag] = a;
+    const isHover = k === hoverIdx, isSel = k === 1;
+    return '<div class="card' + (isHover ? ' is-hover' : '') + (isSel ? ' is-sel' : '') + '"' +
+      (k === 0 && !isSearch ? ' data-pin="8"' : '') + (isHover && !isSearch ? ' data-pin="9"' : '') + '>' +
+      '<div class="top"><span class="idx">' + idx + '</span>' +
+        '<span class="badges"><span class="dotb" style="background:' + tag + '"></span>' +
+        '<span class="stars"><i>' + '★'.repeat(star) + '</i><em>' + '★'.repeat(5 - star) + '</em></span></span></div>' +
+      '<div class="wave-wrap">' + waveSvg(pi + 3, kind, 200, isHover ? '38%' : null) +
+        (isHover ? '<div class="playhead" style="left:38%"></div>' : '') + '</div>' +
+      '<div class="nm">' + nm + '</div>' +
+      '<div class="mt"><span>' + dur + '</span><span>96k</span><span>WAV</span></div>' +
+      '</div>';
+  }).join('');
+
+  const sidebarHtml = isEmpty
+    ? '<aside class="sidebar" data-pin="5">' +
+        '<div class="sb-label">快捷入口</div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.all + '</span>全部音效<span class="n">—</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.clock + '</span>最近导入<span class="n">—</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.star + '</span>收藏<span class="n">—</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.hash + '</span>标签<span class="n">—</span></div>' +
+        '<div class="sb-label">库</div>' +
+        '<div class="sb-hint">还没有库。一个库 = 一个音效文件夹。</div>' +
+        '<div class="drop-lib hot" data-pin="11">＋ 拖入文件夹新建库</div>' +
+      '</aside>'
+    : '<aside class="sidebar" data-pin="5">' +
+        '<div class="sb-label">快捷入口</div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.all + '</span>全部音效<span class="n">3,629</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.clock + '</span>最近导入<span class="n">217</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.star + '</span>收藏<span class="n">41</span></div>' +
+        '<div class="sb-row"><span class="ic">' + ICON.hash + '</span>标签<span class="n">12</span></div>' +
+        '<div class="sb-label">库</div>' +
+        '<div class="sb-lib"><span class="dot"></span><span class="nm">' + LIB_A + '</span><span class="n">217</span></div>' +
+        '<div class="sb-tree">' + treeHtml + '</div>' +
+        '<div class="sb-lib"><span class="dot" style="background:#A78BFA"></span><span class="nm">' + LIB_B + '</span><span class="n">3,412</span></div>' +
+        '<div class="drop-lib" data-pin="11">＋ 拖入文件夹新建库</div>' +
+      '</aside>';
+
+  const contentHtml = isEmpty
+    ? '<main class="content"><div class="empty">' +
+        '<div class="empty-art"><span></span><span></span><span></span></div>' +
+        '<h4>把音效文件夹拖到左边</h4>' +
+        '<p>音匣会递归扫描其中的音频文件，建立波形与索引。<br>不会移动、不会修改你的任何文件。</p>' +
+        '<div class="empty-btns"><span class="btn primary">选择文件夹…</span><span class="btn">试试示例库</span></div>' +
+        '<div class="empty-tip">支持 WAV · AIFF · MP3 · FLAC · M4A · OGG</div>' +
+      '</div></main>'
+    : '<main class="content">' +
+        '<div class="content-head">' +
+          '<h3>' + (isSearch ? '搜索：拔刀' : '刀剑动作') + '</h3>' +
+          '<span class="stat">' + (isSearch ? '3 个结果 · 命中 2 个文件夹' : '3 个子文件夹 · 12 个音效 · 96 kHz / 32 bit') + '</span>' +
+          '<span class="tabs"><span class="on">全部</span><span>收藏</span><span>未试听</span></span>' +
+        '</div>' +
+        '<div class="scroll">' +
+          (isSearch
+            ? '<div class="hitbar"><span class="chip on">#刀剑</span><span class="chip">#古风</span>' +
+              '<span class="hitfind">命中文件夹：刀剑动作 · 拔刀</span></div>'
+            : '<div class="folders">' + foldersHtml + '</div>') +
+          '<div class="grid">' + cardsHtml + '</div>' +
+        '</div>' +
+      '</main>';
+
+  const playerHtml = isEmpty
+    ? '<div class="player" data-pin="10"><div class="idle-tip">' + ICON.play + ' 悬停任意音效即可循环试听 · 空格键播放选中</div></div>'
+    : '<div class="player" data-pin="10">' +
+      '<div class="transport">' +
+        '<span class="tbtn">' + ICON.prev + '</span>' +
+        '<span class="tbtn main">' + ICON.pause + '</span>' +
+        '<span class="tbtn">' + ICON.stop + '</span>' +
+      '</div>' +
+      '<div class="pwave">' + waveSvg(4, 'impulse', 300) + '<div class="playhead" style="left:34%"></div></div>' +
+      '<div class="ptime"><b>00:00.81</b> / 00:02.41</div>' +
+      '<div class="pctrl">' +
+        '<span class="pill">循环：智能</span>' +
+        '<span class="pill on">归一化</span>' +
+        '<div class="vol"><i></i><u></u></div>' +
+        '<span class="pill">扬声器 · Realtek</span>' +
+      '</div>' +
+    '</div>';
+
+  return '<div class="desk"><div class="wall"><b></b><b></b><b></b></div>' +
+  '<div class="window">' +
+
+    '<div class="titlebar" data-pin="1">' +
+      '<span class="logo"></span><span class="brand">音匣</span>' +
+      '<span class="lib-tabs"><span class="lib-tab on">叮咚社 4.0</span><span class="lib-tab">BOOM</span></span>' +
+      '<span class="tb-spacer"></span>' +
+      '<span class="tb-ic">' + ICON.theme + '</span>' +
+      '<span class="tb-ic">' + ICON.pinwin + '</span>' +
+      '<span class="tb-ic">' + ICON.gear + '</span>' +
+      '<span class="win-ctl"><span>—</span><span>□</span><span>✕</span></span>' +
+    '</div>' +
+
+    '<div class="toolbar">' +
+      '<div class="search' + (isSearch ? ' on' : '') + '" data-pin="2">' + ICON.search +
+        (isSearch ? '<span class="typed">拔刀</span><span class="caret"></span>' : '<span>搜索音效、标签、拼音首字母…</span><span class="kbd">Ctrl F</span>') +
+        '</div>' +
+      '<div class="crumb" data-pin="3">' +
+        (isEmpty ? '<span style="opacity:.55">尚无库</span>' :
+         isSearch ? '<span>搜索结果</span><span class="sep">·</span><b>全部库</b>' :
+         '<span>叮咚社 4.0</span><span class="sep">›</span><b>刀剑动作</b>') +
+      '</div>' +
+      '<span class="tb-spacer"></span>' +
+      '<div class="tb-right">' +
+        '<span class="pill">名称 ▾</span>' +
+        '<span class="seg"><i class="on">' + ICON.grid + '</i><i>' + ICON.list + '</i></span>' +
+        '<span class="pill' + (isEmpty ? '' : ' on') + '" data-pin="4">深度：' + (isEmpty ? '关' : '开') + '</span>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="body">' + sidebarHtml + contentHtml + '</div>' +
+    playerHtml +
+  '</div></div>';
+}
+
+function placePins(win){
+  const wr = win.getBoundingClientRect();
+  win.querySelectorAll('[data-pin]').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'pin-n';
+    p.textContent = el.dataset.pin;
+    let px = r.left - wr.left - 10;
+    let py = r.top - wr.top - 10;
+    if (r.width < 300) px = r.right - wr.left + 2;
+    if (px > wr.width - 26) { px = r.left - wr.left - 10; py = r.top - wr.top - 24; }
+    p.style.left = Math.max(2, px) + 'px';
+    p.style.top  = Math.max(2, py) + 'px';
+    win.appendChild(p);
+  });
+}
+
+document.getElementById('canvas-dark').innerHTML   = renderApp({});
+document.getElementById('canvas-light').innerHTML  = renderApp({hover:-1});
+document.getElementById('canvas-search').innerHTML = renderApp({mode:'search', hover:-1});
+document.getElementById('canvas-empty').innerHTML  = renderApp({mode:'empty', hover:-1});
+
+(function(){
+  const sc = document.getElementById('spec-cards');
+  if (sc) sc.innerHTML = [
+    ['001','拔刀相向','2.41s',3,'impulse'],
+    ['008','兵器格挡','1.82s',9,'burst'],
+    ['027','大侠夺兵器','4.20s',12,'decay']
+  ].map(([i,n,d,s,k]) =>
+    '<div class="card" style="width:188px">' +
+      '<div class="top"><span class="idx">' + i + '</span><span class="badges">' +
+      '<span class="dotb" style="background:#38BDF8"></span>' +
+      '<span class="stars"><i>★★★★</i><em>★</em></span></span></div>' +
+      '<div class="wave-wrap">' + waveSvg(s, k, 188) + '</div>' +
+      '<div class="nm">' + n + '</div><div class="mt"><span>' + d + '</span><span>96k</span></div></div>'
+  ).join('');
+
+  const sh = document.getElementById('spec-shades');
+  if (sh) sh.innerHTML = ['#0B2B3D','#0E5A7A','#38BDF8','#7DD3FC','#CBEBFB']
+    .map(c => '<span class="sw" style="background:' + c + '"></span>').join('');
+})();
+
+drawWaves(document);
+placePins(document.querySelector('#canvas-dark .window'));
+
+/* 单屏预览：?only=s2 —— 用于截图校对 */
+(function(){
+  const only = new URLSearchParams(location.search).get('only');
+  if (!only) return;
+  document.querySelectorAll('section').forEach(s => { if (s.id !== only) s.remove(); });
+  ['.page-head', '.toc'].forEach(sel => { const el = document.querySelector(sel); if (el) el.remove(); });
+  document.querySelector('.page').style.paddingTop = '20px';
+})();
+</script>
+</div>
+</body>
+</html>
