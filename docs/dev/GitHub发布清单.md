@@ -54,30 +54,6 @@ git push -u origin main
 > 以后改了代码要重新提交，用仓库里的脚本：`.\tools\git-init.ps1`（会自动找 git、设好作者、提交）。
 
 
-先装 Git：
-
-```powershell
-winget install --id Git.Git -e
-```
-
-装完**重开一个终端**，然后：
-
-```powershell
-cd "D:\deepseek harness workspace\SoundVault"
-
-git init
-git add .
-git commit -m "音匣 SoundVault 1.0.0"
-
-git branch -M main
-git remote add origin https://github.com/<你的用户名>/SoundVault.git
-git push -u origin main
-```
-
-> 第一次 push 会要求登录。推荐用 GitHub Desktop 或 `gh auth login`，别把密码写进 URL。
-
----
-
 ## 三、在 GitHub 上创建仓库
 
 1. 打开 https://github.com/new
