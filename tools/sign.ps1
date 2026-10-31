@@ -9,7 +9,7 @@
     powershell -ExecutionPolicy Bypass -File tools\sign.ps1 -Pfx D:\cert\my.pfx -Password 你的密码
 
     # 3) 只签某一个文件
-    powershell -ExecutionPolicy Bypass -File tools\sign.ps1 -Test -File dist\音匣.exe
+    powershell -ExecutionPolicy Bypass -File tools\sign.ps1 -Test -File _local\dist\音匣.exe
 
   说明：
   - 自签证书只在**本机**有意义：签名本身有效，但别人的机器上没有这个根证书，仍会提示"未知发布者"。
@@ -44,12 +44,12 @@ function Find-SignTool {
 
 $targets = if ($File) { $File } else {
     @(
-        (Join-Path $root 'dist\音匣.exe'),
-        (Join-Path $root 'dist\音匣安装包.exe')
+        (Join-Path $root '_local\dist\音匣.exe'),
+        (Join-Path $root '_local\dist\音匣安装包.exe')
     )
 }
 $targets = $targets | Where-Object { Test-Path $_ }
-if (-not $targets) { throw '没有可签名的文件（先 publish 出 dist\音匣.exe）' }
+if (-not $targets) { throw '没有可签名的文件（先 publish 出 _local\dist\音匣.exe）' }
 
 $signTool = Find-SignTool
 Write-Host "signtool: $signTool"

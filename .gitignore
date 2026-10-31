@@ -1,9 +1,7 @@
 # 构建产物
 bin/
 obj/
-dist/
-release/
-backup/
+_local/
 
 # IDE / 工具
 .vs/

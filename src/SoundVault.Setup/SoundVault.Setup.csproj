@@ -22,9 +22,9 @@
 
   <ItemGroup>
     <!-- 主程序内嵌进来：安装包本身就是完整的一个 exe -->
-    <EmbeddedResource Include="..\..\dist\音匣.exe"
+    <EmbeddedResource Include="..\..\_local\dist\音匣.exe"
                       LogicalName="SoundVault.App.exe"
-                      Condition="Exists('..\..\dist\音匣.exe')" />
+                      Condition="Exists('..\..\_local\dist\音匣.exe')" />
   </ItemGroup>
 
 </Project>

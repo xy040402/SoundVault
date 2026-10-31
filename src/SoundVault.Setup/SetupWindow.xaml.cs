@@ -42,7 +42,7 @@ public partial class SetupWindow : Window
         if (!Installer.HasPayload)
         {
             InstallBtn.IsEnabled = false;
-            LogText.Text = "安装包里没有找到主程序（打包时 dist\\音匣.exe 不存在）。";
+            LogText.Text = "安装包里没有找到主程序（打包时 _local\\dist\\音匣.exe 不存在）。";
         }
     }
 

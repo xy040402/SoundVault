@@ -1,4 +1,4 @@
-﻿# 一键构建：主程序 + 安装包，产物在 dist\
+﻿# 一键构建：主程序 + 安装包，产物在 _local\dist\
 # 用法：  .\build.ps1            默认 1.0.0
 #         .\build.ps1 -Version 1.0.1
 param(
@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$dist = Join-Path $root "dist"
+$dist = Join-Path $root "_local\dist"
 
 Write-Host "==> 清理 $dist" -ForegroundColor Cyan
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }

@@ -71,15 +71,15 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 # 单文件 exe
 dotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true -o dist
+  -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 
-# 安装包（会把 dist/音匣.exe 打进安装器）
+# 安装包（会把 _local/dist/音匣.exe 打进安装器）
 dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true -o dist
+  -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 ```
 
-或者直接跑 `.\build.ps1`（产物在 `dist\`）。
+或者直接跑 `.\build.ps1`（产物在 `_local\dist\`）。
 
 ### 跑测试
 
@@ -106,6 +106,7 @@ tests/                    断言测试
 tools/                    构建、测试、签名脚本
 docs/                     使用说明书、设计文档、截图、Logo
 docs/dev/                 开发记录、交接说明、未完成清单、验证报告（过程存档）
+_local/                   构建产物与历史版本（不进仓库，.gitignore 已排除）
 ```
 
 ---
