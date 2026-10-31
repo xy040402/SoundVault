@@ -79,7 +79,7 @@ git push -u origin main
    第一个正式版。
 
    ### 下载
-   - **音匣安装包.exe** — 双击安装（唯一提供的下载；装完就有 `音匣.exe`）
+   - **SoundVault-1.0.0-Setup.exe** — 双击安装（唯一提供的下载；装完就有 `音匣.exe`）
 
    ### 亮点
    - 拼音首字母 + 过滤语法秒搜（`bdx` → 拔刀相向）
@@ -95,7 +95,7 @@ git push -u origin main
    - 详细用法见 [使用说明书](docs/使用说明书.md)
    ```
 5. **Attach binary**（只传一个文件，其余 exe 都不放）：
-   - `_local\dist\音匣安装包.exe`（132 MB，已内嵌主程序）
+   - `_local\dist\SoundVault-1.0.0-Setup.exe`（132 MB，已内嵌主程序；用英文名，中文名会被 GitHub 转义）
 
    > 绿色版 `音匣.exe` **不作为附件**。别人装完就有 `C:\Program Files\SoundVault\音匣.exe`；
    > 想要纯绿色版的人可以自己 `.\build.ps1` 构建，或从安装目录拷出来。

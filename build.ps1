@@ -35,6 +35,10 @@ if (-not $SkipInstaller) {
     Write-Host "==> 构建安装包" -ForegroundColor Cyan
     dotnet publish (Join-Path $root "src\SoundVault.Setup") @common | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "installer build failed" }
+
+    # Release 附件用纯英文名：中文名在 GitHub 上会被转义成奇怪的名字
+    $cn = Join-Path $dist "音匣安装包.exe"
+    if (Test-Path $cn) { Copy-Item $cn (Join-Path $dist "SoundVault-$Version-Setup.exe") -Force }
 }
 
 Write-Host ""

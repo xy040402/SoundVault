@@ -14,9 +14,9 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 
 | 文件 | 说明 |
 |---|---|
-| **音匣安装包.exe** | 双击安装，装完即可用。绿色版不单独提供 —— 需要的话装完把 `音匣.exe` 拷出来，或自己 build |
+| **SoundVault-1.0.0-Setup.exe** | 安装包，双击安装，装完即可用。绿色版不单独提供 —— 需要的话装完把 `音匣.exe` 拷出来，或自己 build |
 
-到 [Releases](../../releases/latest) 页面下载 `音匣安装包.exe`。
+到 [Releases](../../releases/latest) 页面下载 `SoundVault-1.0.0-Setup.exe`。
 
 > 无需预装 .NET；装到 `C:\Program Files` 会弹一次 UAC。
 
@@ -55,7 +55,7 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 
 **方式一：安装包（推荐）**
 
-下载 `音匣安装包.exe` → 双击 → 选安装位置 → 完成。
+下载 `SoundVault-1.0.0-Setup.exe` → 双击 → 选安装位置 → 完成。
 安装位置会自动补 `SoundVault` 子目录（选 `D:\Apps` 就是 `D:\Apps\SoundVault`）。
 装到 `C:\Program Files` 会弹 UAC 提权；装到用户目录不需要。
 
