@@ -72,6 +72,8 @@ git push -u origin main
 1. 仓库右侧 → **Releases** → **Draft a new release**
 2. **Tag**：`v1.0.0` → **Create new tag on publish**
 3. **Title**：`音匣 SoundVault 1.0.0`
+> 发布说明已经写好了：直接把 [`RELEASE-v1.0.0.md`](RELEASE-v1.0.0.md) 的内容整段粘进去即可（点 GitHub 编辑器右上角的 "Paste" 或用编辑器打开复制）。
+
 4. **Describe**（可直接复制 CHANGELOG 的 1.0.0 段）：
    ```markdown
    第一个正式版。
@@ -124,3 +126,26 @@ git push -u origin main
 - [ ] 在干净机器（或新建 Windows 用户）上装一次，确认首次启动是**空状态 + 新手引导**
 - [ ] README 里的图片都能显示（仓库里是相对路径）
 - [ ] License 已确认（现在是 MIT，要换就改 LICENSE 与 README 末节）
+
+---
+
+## 七、命令行一键发 Release（可选）
+
+装了 GitHub CLI 的话，推代码和发 Release 可以一条命令搞定：
+
+```powershell
+winget install --id GitHub.cli -e     # 只装一次
+gh auth login                          # 浏览器登录一次
+
+cd "D:\deepseek harness workspace\SoundVault"
+$env:PATH = "D:\deepseek harness workspace\.tools\git\cmd;" + $env:PATH
+
+git remote add origin https://github.com/<你的用户名>/SoundVault.git
+git push -u origin main
+
+gh release create v1.0.0 "_local\dist\音匣安装包.exe" `
+  --title "音匣 SoundVault 1.0.0" `
+  --notes-file "docs\dev\RELEASE-v1.0.0.md"
+```
+
+`gh release create` 会自动把 tag 建好、把安装包作为附件上传、把发布说明填好 —— 就是这个仓库要的全部内容。
