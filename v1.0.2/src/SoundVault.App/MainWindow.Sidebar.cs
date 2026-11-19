@@ -97,6 +97,9 @@ public partial class MainWindow
         if (select) ShowLibrary(lib.RootPath);
         else if (_side.Count > 0 && FolderList.SelectedIndex < 0) SyncSidebarSelection(lib.Root);
 
+        // P2：库已经出现在界面上了，波形放后台补（不 await，用户立刻能用）
+        _ = FillPeaksAsync(lib.RootPath);
+
         Services.Log.Info("导入", $"完成 统计={ContentStat.Text}");
 
         // 素材包识别放在最后：它以前挡在扫描前面，用户看到的是扫描前的空视图（v0.36 修）
@@ -133,8 +136,6 @@ public partial class MainWindow
                 return true;
             }
 
-            // P2：先让卡片出来，波形交给后台补
-            await FillPeaksAsync(root);
             return false;
         }
         finally

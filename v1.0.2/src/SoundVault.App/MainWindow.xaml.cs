@@ -211,6 +211,7 @@ public partial class MainWindow : Window
 
         await RunListTestIfRequestedAsync();
         await RunOrgTestIfRequestedAsync();
+        await RunImportDirTestIfRequestedAsync();
         RunPurgeTestIfRequested();
         DumpDbIfRequested();
         await ThemeDialogTestIfRequestedAsync();

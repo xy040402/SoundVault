@@ -289,6 +289,16 @@ public partial class MainWindow
         try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
     }
     /// <summary>验收钩子：SV_PURGE_TEST=1 时对第一个库跑一遍"删库清理"，结果写 sv-purge.txt。</summary>
+    /// <summary>验收钩子：SV_IMPORT_DIR=&lt;文件夹&gt; 时，启动后按"拖入文件夹"那条路导入（select:true）。</summary>
+    private async Task RunImportDirTestIfRequestedAsync()
+    {
+        var dir = Environment.GetEnvironmentVariable("SV_IMPORT_DIR");
+        if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) return;
+
+        Log.Info("验收", "SV_IMPORT_DIR 导入 " + dir);
+        await AddLibraryAsync(dir, select: true);
+        Log.Info("验收", "SV_IMPORT_DIR 导入返回");
+    }
     private void RunPurgeTestIfRequested()
     {
         if (Environment.GetEnvironmentVariable("SV_PURGE_TEST") != "1") return;
