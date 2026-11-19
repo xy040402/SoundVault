@@ -33,27 +33,34 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 
 | 目录 | 状态 | 内容 |
 |---|---|---|
-| [`v1.0.0/`](v1.0.0/) | ✅ 已发布 | 源码 · [使用说明书](v1.0.0/使用说明书.md) · 安装包（Release 下载） |
 | [`v1.0.2/`](v1.0.2/) | ✅ 已发布（2026-11-20） | [修改意见与方案](v1.0.2/修改意见.md) · 源码 · 说明书 · 安装包 |
-| [`v1.0.1/`](v1.0.1/) | 🧊 已冻结（未发布） | [修改意见与方案](v1.0.1/修改意见.md) · 源码 · 说明书 · 安装包 |
 
 ```
 SoundVault/
-├─ v1.0.0/           一个已发布版本
-│  ├─ src/ tests/ tools/
-│  ├─ 使用说明书.md
-│  └─ 安装包/         （exe 不进 Git，见该目录 README）
-├─ v1.0.1/           冻结的上一版
-├─ v1.0.2/           当前发布版本
-│  ├─ 修改意见.md      这一版要修什么、怎么修
-│  ├─ src/ tests/ tools/
-│  ├─ 使用说明书.md
-│  └─ 安装包/
-├─ docs/             跨版本资料（开发历程、设计文档、开发记录）
-└─ CHANGELOG.md      版本变更历史
+  v1.0.2/                    当前源码（自包含，一个目录就能编译）
+    build.ps1                构建脚本（应用 + 安装包）
+    src/
+      SoundVault.App/        主程序
+        Audio/               解码、播放引擎、循环缓存
+        Models/              AssetItem / 库 / 文件夹模型
+        ViewModels/          搜索与选中的纯逻辑（可单测）
+        Services/            索引、拼音搜索、LUFS、素材包识别、主题…
+        Dialogs/             设置、导出、批量重命名、元数据…
+        Controls/            虚拟化卡片面板、波形控件…
+      SoundVault.Setup/      安装器 / 卸载器（同一个 exe，靠参数区分）
+    tests/                   断言测试（31 项验收）
+    tools/                   构建、验收、签名脚本
+    使用说明书.md            这一版的用户手册
+    修改意见.md              这一版改了什么、为什么
+    安装包/                  构建产物（exe 不进 Git，走 Release）
+
+  docs/                      跨版本资料：开发历程、设计文档、更新汇报
+  docs/dev/                  开发记录、功能验证报告（过程存档）
+  docs/images/               手册与 README 用的截图
+  _local/                    本地产物与备份（不进仓库）
 ```
 
-> 每个版本文件夹都是**自包含**的：拿到 `v1.0.1/` 一个目录就能编译出这一版。
+> 每个版本文件夹都是**自包含**的：拿到 `v1.0.2/` 一个目录就能编译出这一版。
 
 ---
 
@@ -82,7 +89,7 @@ SoundVault/
 | **外观** | 深色/浅色、自定义主色、面板透明度、圆角、Win11 云母、省电模式 |
 | **素材包识别** | 自动认出封面、授权文件、版本号，以及"没下完的文件" |
 
-逐项操作说明见 [v1.0.0/使用说明书.md](v1.0.0/使用说明书.md)；
+逐项操作说明见 [v1.0.2/使用说明书.md](v1.0.2/使用说明书.md)；
 从立项到发布的完整经过见 [docs/开发历程.md](docs/开发历程.md)。
 
 ---
@@ -98,7 +105,7 @@ SoundVault/
 **方式二：绿色版（不单独提供下载）**
 
 Release 只提供安装包。想要纯绿色版：装完把 `C:\Program Files\SoundVault\音匣.exe` 拷走即可，
-或者自己进 `v1.0.1\` 跑 `.\build.ps1` 构建一份。
+或者自己进 `v1.0.2\` 跑 `.\build.ps1` 构建一份。
 
 **便携模式**：在 `音匣.exe` 旁边建一个空的 `data\` 文件夹，配置和索引就存在那里，整个文件夹拷走即可。
 
@@ -121,7 +128,7 @@ Release 只提供安装包。想要纯绿色版：装完把 `C:\Program Files\So
 
 ```powershell
 # 单文件 exe
-cd v1.0.1`r`ndotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
+cd v1.0.2`r`ndotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 
@@ -131,7 +138,7 @@ dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
   -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 ```
 
-或者进版本目录（如 `v1.0.1\`）直接跑 `.\build.ps1`（产物在该目录的 `_local\dist\`）。
+或者进版本目录（如 `v1.0.2\`）直接跑 `.\build.ps1`（产物在该目录的 `_local\dist\`）。
 
 ### 跑测试
 
@@ -146,7 +153,7 @@ dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
 ## 目录结构
 
 ```
-v1.0.0/                    一个已发布版本（自包含）
+
   src/
     SoundVault.App/        主程序（WPF）
       MainWindow*.cs       主窗口，按功能拆成多个 partial
@@ -160,7 +167,7 @@ v1.0.0/                    一个已发布版本（自包含）
   使用说明书.md              这一版的手册
   安装包/                  构建产物（exe 不进 Git）
 
-v1.0.1/                    冻结的上一版，结构同上 + 修改意见.md
+
 v1.0.2/                    当前开发版本，结构同上 + 修改意见.md
   ├─ 修改意见.md            这一版要修什么、怎么修
   └─ …
@@ -188,7 +195,7 @@ _local/                    本地杂物：构建产物、历史 exe、备份（�
 |---|---|
 | 有东西坏了 | [问题反馈](https://github.com/xy040402/SoundVault/issues/new?template=bug_report.yml) |
 | 希望加功能 | [功能建议](https://github.com/xy040402/SoundVault/issues/new?template=feature_request.yml) |
-| 用法不清楚 | [使用说明书](v1.0.1/使用说明书.md) |
+| 用法不清楚 | [使用说明书](v1.0.2/使用说明书.md) |
 
 不开 QQ 群 / 微信群：群里的答案搜不到，后来的人还得再问一遍；issue 能挂日志、能搜、别人也能看到。
 详细说明见 [docs/反馈指南.md](docs/反馈指南.md)。
@@ -207,6 +214,6 @@ _local/                    本地杂物：构建产物、历史 exe、备份（�
 
 - **反馈 / bug 报告**：2284673040@qq.com
 - **Issue**：欢迎在仓库里开 issue，附上 Windows 版本、复现步骤；能带截图更好
-- **使用问题**：先看 [`使用说明书`](v1.0.0/使用说明书.md) 的「常见问题」一节
+- **使用问题**：先看 [`使用说明书`](v1.0.2/使用说明书.md) 的「常见问题」一节
 
 > 这个软件不收集任何数据、不联网，装完就是本地的。
