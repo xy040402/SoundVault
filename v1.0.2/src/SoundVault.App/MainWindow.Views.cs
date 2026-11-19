@@ -458,14 +458,14 @@ public partial class MainWindow
     }
     private void LoadSearchView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ContentTitle.Text = "搜索";
         _globalScope = true;                  // 搜索跨库：多库时不至于只搜到一个库
         _viewLibRoot = "*";
         ApplyContentLayout(false, true);
 
-        var trail = TrailFor(null);
+        var trail = _globalScope ? new List<(string Label, FolderItem? Target, Action? Act)>() : TrailFor(null);
         trail.Add(("搜索", null, null));
         ShowCrumbs(trail);
 
@@ -524,15 +524,16 @@ public partial class MainWindow
     private void LoadTagsView()
     {
         ClearSearch();
+        _globalScope = true;
         _viewKind = ViewKind.Tags;
         _favoritesOnly = false;
         _currentFolder = null;
 
         ContentTitle.Text = "标签";
-        _viewLibRoot = _lib?.RootPath ?? "";
+        _viewLibRoot = "*";
         ApplyContentLayout(false, false, showTags: true);
 
-        var trail = TrailFor(null);
+        var trail = _globalScope ? new List<(string Label, FolderItem? Target, Action? Act)>() : TrailFor(null);
         trail.Add(("标签", null, null));
         ShowCrumbs(trail);
 
@@ -541,18 +542,19 @@ public partial class MainWindow
     }
     private void LoadDuplicatesView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ClearSearch();
+        _globalScope = true;
         _viewKind = ViewKind.Duplicates;
         _favoritesOnly = false;
         _currentFolder = null;
-        _viewLibRoot = _lib.RootPath;
+        _viewLibRoot = "*";
 
         ContentTitle.Text = "重复检查";
         ApplyContentLayout(false, false, showTags: true);     // 复用标签页那个列表容器
 
-        var trail = TrailFor(null);
+        var trail = _globalScope ? new List<(string Label, FolderItem? Target, Action? Act)>() : TrailFor(null);
         trail.Add(("重复检查", null, null));
         ShowCrumbs(trail);
 
