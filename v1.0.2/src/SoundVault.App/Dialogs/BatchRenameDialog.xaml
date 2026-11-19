@@ -1,0 +1,98 @@
+<Window x:Class="SoundVault.App.Dialogs.BatchRenameDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="音匣 · 批量重命名" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Width="620" Height="560" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False" ResizeMode="NoResize"
+        FontFamily="Microsoft YaHei UI" FontSize="12"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
+
+    <Border Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}"
+            BorderThickness="1" CornerRadius="14" Padding="22,18,22,16" Margin="18"
+            MouseLeftButtonDown="Root_MouseDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.5" Color="Black"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock x:Name="TitleText" FontSize="13.5" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}"/>
+
+            <!-- 模板 -->
+            <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                <TextBlock Text="新文件名模板" FontSize="10.5" Margin="0,0,0,6"
+                           Foreground="{DynamicResource TextSecondary}"/>
+                <Border Height="32" CornerRadius="8" Background="{DynamicResource SearchBg}"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" Padding="10,0">
+                    <TextBox x:Name="TemplateBox" Background="Transparent" BorderThickness="0" FontSize="12"
+                             Foreground="{DynamicResource TextPrimary}" VerticalContentAlignment="Center"
+                             CaretBrush="{DynamicResource Accent}"/>
+                </Border>
+                <TextBlock Text="{}{n:00} 序号 · {name} 名称 · {index} 编号 · {dur} 时长 · {sr} 采样率 · {ch} 声道 · {lib} 库名（扩展名自动保留）"
+                           FontSize="10" Margin="0,5,0,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextTertiary}"/>
+            </StackPanel>
+
+            <TextBlock x:Name="SummaryText" Grid.Row="2" Margin="0,12,0,6" FontSize="11"
+                       Foreground="{DynamicResource TextSecondary}"/>
+
+            <Border Grid.Row="3" CornerRadius="8" Background="{DynamicResource SearchBg}"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" Padding="8,6">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="PreviewList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Old}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextTertiary}"/>
+                                    <TextBlock Grid.Column="1" Text="→" FontSize="11" Margin="8,0"
+                                               Foreground="{DynamicResource TextTertiary}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding New}" FontSize="11"
+                                               TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Conflict}" Value="True">
+                                                        <Setter Property="Foreground" Value="#FFEF4444"/>
+                                                        <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Border Height="30" CornerRadius="8" Padding="16,0" Margin="0,0,8,0" Cursor="Hand"
+                        Background="Transparent" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                        MouseLeftButtonDown="Cancel_Click">
+                    <TextBlock Text="取消" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                </Border>
+                <Border Height="30" CornerRadius="8" Padding="18,0" Cursor="Hand"
+                        Background="{DynamicResource Accent}" MouseLeftButtonDown="Ok_Click">
+                    <TextBlock Text="开始重命名" Foreground="{DynamicResource OnAccent}" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

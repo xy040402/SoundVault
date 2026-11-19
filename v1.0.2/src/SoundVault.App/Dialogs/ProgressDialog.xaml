@@ -1,0 +1,48 @@
+<Window x:Class="SoundVault.App.Dialogs.ProgressDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="音匣 · 进行中" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Width="420" SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False" ResizeMode="NoResize"
+        FontFamily="Microsoft YaHei UI" FontSize="12"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
+
+    <Border Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}"
+            BorderThickness="1" CornerRadius="14" Padding="22,18,22,16" Margin="18"
+            MouseLeftButtonDown="Root_MouseDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.5" Color="Black"/>
+        </Border.Effect>
+
+        <StackPanel>
+            <TextBlock x:Name="TitleText" FontSize="13.5" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}"/>
+            <TextBlock x:Name="DetailText" Margin="0,8,0,0" FontSize="11"
+                       Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis"/>
+
+            <!-- 细进度条 -->
+            <Border Margin="0,12,0,0" Height="6" CornerRadius="3" Background="{DynamicResource PanelBg}"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                <Grid>
+                    <Border x:Name="Fill" HorizontalAlignment="Left" Width="0" CornerRadius="3"
+                            Background="{DynamicResource Accent}"/>
+                </Grid>
+            </Border>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="CountText" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiary}"/>
+                <Border x:Name="CancelBtn" Grid.Column="1" Height="28" CornerRadius="8" Padding="14,0"
+                        Background="Transparent" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                        Cursor="Hand" MouseLeftButtonDown="Cancel_Click">
+                    <TextBlock Text="取消" FontSize="11.5" Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>
