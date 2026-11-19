@@ -295,6 +295,33 @@ public sealed class IndexDb : IDisposable
     }
 
     /// <summary>P2：一批波形写回（一个事务）。</summary>
+    /// <summary>按路径批量取峰值（补完波形后只刷新看得见的那几张卡，不用整库重建）。</summary>
+    public Dictionary<string, byte[]> PeaksFor(IEnumerable<string> paths)
+    {
+        var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        var list = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (list.Count == 0) return result;
+
+        lock (_gate)
+        {
+            for (int start = 0; start < list.Count; start += 800)
+            {
+                var chunk = list.GetRange(start, Math.Min(800, list.Count - start));
+                var sql = "SELECT path, peaks FROM files WHERE peaks IS NOT NULL AND path IN (" +
+                          string.Join(",", chunk.Select((_, i) => "$p" + i)) + ")";
+                using var cmd = _cn.CreateCommand();
+                cmd.CommandText = sql;
+                for (int i = 0; i < chunk.Count; i++) cmd.Parameters.AddWithValue("$p" + i, chunk[i]);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    if (r.IsDBNull(1)) continue;
+                    result[r.GetString(0)] = (byte[])r.GetValue(1);
+                }
+            }
+        }
+        return result;
+    }
     public void SetPeaks(IReadOnlyDictionary<string, byte[]?> peaks)
     {
         if (peaks.Count == 0) return;

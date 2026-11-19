@@ -144,9 +144,9 @@ public sealed class WaveformView : FrameworkElement
 
         // 峰值 520 个远超卡片像素宽度，逐柱画会重叠成一片。
         // 降采样到"约 1.6px 一根"，并用 Nonzero 填充规则，避免重叠区被奇偶规则挖空。
-        int target = Math.Clamp((int)Math.Round(w / 1.6), 24, peaks.Length);
+        int target = Math.Clamp((int)Math.Round(w / 3.0), 20, peaks.Length);   // P3-压测：1.6px/柱 → 3px/柱，几何构建成本减半，观感几乎不变
         step = w / target;
-        barW = Math.Max(0.9, Math.Min(step * 0.66, 3.0));
+        barW = Math.Max(1.0, Math.Min(step * 0.66, 3.2));
         int per = Math.Max(1, peaks.Length / target);
 
         var geo = new StreamGeometry { FillRule = FillRule.Nonzero };

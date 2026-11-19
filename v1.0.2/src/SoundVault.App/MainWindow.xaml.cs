@@ -635,8 +635,10 @@ public partial class MainWindow : Window
             int n = await _indexer.FillPeaksAsync(root, progress, _scanCts!.Token);
             if (n > 0)
             {
-                LogStartup($"补波形 {Path.GetFileName(root)}：{n} 个");
-                ReloadCurrentView(root);      // 波形补好了，重画一次
+                Log.Info("波形", $"补波形 {Path.GetFileName(root)}：{n} 个");
+                // 只把新峰值贴回当前显示的卡片（10 万条时 ReloadCurrentView 会重建整库，卡 1–2 秒）
+                int patched = RefreshVisiblePeaks(root);
+                Log.Info("波形", $"补波形后刷新可见卡片：{patched} 张");
             }
         }
         catch (Exception ex)

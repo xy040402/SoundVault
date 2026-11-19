@@ -94,6 +94,40 @@ public partial class MainWindow
         });
     }
 
+    /// <summary>
+    /// 波形补好后，只把新峰值贴回"当前显示"的卡片，避免整库重建。
+    /// 返回实际更新了多少张卡。
+    /// </summary>
+    private int RefreshVisiblePeaks(string root)
+    {
+        if (_db is null || _view.Count == 0) return 0;
+
+        try
+        {
+            // 只查当前视图里、峰值还空着的那些
+            var need = _view.Where(a => a.PeaksBytes is null
+                                        && a.FilePath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                            .Select(a => a.FilePath)
+                            .ToList();
+            if (need.Count == 0) return 0;
+
+            var peaks = _db.PeaksFor(need);
+            int n = 0;
+            foreach (var item in _view)
+            {
+                if (item.PeaksBytes is not null) continue;
+                if (!peaks.TryGetValue(item.FilePath, out var bytes)) continue;
+                item.PeaksBytes = bytes;
+                n++;
+            }
+            return n;
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("波形", "刷新可见卡片失败", ex);
+            return 0;
+        }
+    }
     /// <summary>输入防抖：连打五个字只过滤一次。</summary>
     private void QueueFilter()
     {
