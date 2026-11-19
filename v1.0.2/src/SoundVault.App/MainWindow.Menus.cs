@@ -120,6 +120,18 @@ public partial class MainWindow
         foreach (var mi in BuildTagItems(a)) tags.Items.Add(mi);
         menu.Items.Add(tags);
 
+        // P4：本地 AI 打标签（右键单个音效 = 只处理它；多选时处理选中）
+        var ai = new MenuItem { Header = _selected.Count > 1 ? $"AI 识别标签（{_selected.Count} 个）" : "AI 识别标签（本地）" };
+        ai.Click += async (_, _) => await RunAiTagAsync(_selected.Count > 0 ? _selected.ToList() : new List<AssetItem> { a });
+        menu.Items.Add(ai);
+
+        if (_aiTagUndo.Count > 0)
+        {
+            var undo = new MenuItem { Header = $"撤销 AI 标签（{_aiTagUndo.Count} 个）" };
+            undo.Click += (_, _) => UndoAiTags();
+            menu.Items.Add(undo);
+        }
+
         menu.Items.Add(new Separator());
 
         var metaItem = new MenuItem { Header = "元数据…" };
@@ -295,6 +307,13 @@ public partial class MainWindow
                     $"incomplete={pack.IncompleteCount}\naudio={pack.AudioCount}\n", System.Text.Encoding.UTF8);
             }
             catch { }
+            return;
+        }
+
+        // 验收开关：自动化测试时别弹模态框，否则后面的钩子全被挡住
+        if (Environment.GetEnvironmentVariable("SV_NO_PACK_DIALOG") == "1")
+        {
+            Log.Info("导入", "SV_NO_PACK_DIALOG=1，跳过素材包摘要框");
             return;
         }
 
