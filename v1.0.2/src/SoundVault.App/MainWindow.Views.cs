@@ -459,8 +459,20 @@ public partial class MainWindow
         trail.Add(("搜索", null, null));
         ShowCrumbs(trail);
 
-        SetAssets(ReadAllRows());       // 全库；SetAssets 内部会 ApplyFilter
+        // P3：整库卡片只建一次（换库或数据变了才重建），再次搜索是 0 成本
+        var items = SearchItems();
+
+        _all.Clear();
+        _selection.Clear();
+        _selected.Clear();
+        _anchor = null;
+        foreach (var it in items) _all.Add(it);
+
+        _lastFilterText = "";
+        _lastFilterResult = null;
+        ApplyFilter();
     }
+
     private void UpdateSearchStat()
     {
         if (!_searchMode) return;
@@ -476,7 +488,22 @@ public partial class MainWindow
         _search.SortDescending = _sortDesc;
         _search.SetText(SearchBox.Text);
 
-        _view.ResetWith(_search.Apply(_all));
+        // P3 增量：只是多打了几个字、排序和收藏没变 → 在上一批结果里再筛，不用扫全库
+        bool sameShape = _lastFilterResult is not null
+                         && _lastFilterSort == (int)_sortMode && _lastFilterDesc == _sortDesc && _lastFilterFav == _favoritesOnly;
+        bool extends = sameShape && _lastFilterText.Length > 0
+                       && SearchBox.Text.Trim().StartsWith(_lastFilterText, StringComparison.OrdinalIgnoreCase);
+
+        var source = extends ? (IEnumerable<AssetItem>)_lastFilterResult! : _all;
+        var filtered = _search.Apply(source);
+
+        _lastFilterText = SearchBox.Text.Trim();
+        _lastFilterResult = filtered;
+        _lastFilterSort = (int)_sortMode;
+        _lastFilterDesc = _sortDesc;
+        _lastFilterFav = _favoritesOnly;
+
+        _view.ResetWith(filtered);
 
         // 有内容却一条都没筛出来 → 告诉用户是"搜索没命中"，而不是让他盯着空屏
         if (_view.Count == 0 && _all.Count > 0)

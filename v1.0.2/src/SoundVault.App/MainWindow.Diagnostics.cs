@@ -298,6 +298,64 @@ public partial class MainWindow
         await AddLibraryAsync(dir, select: true);
         Log.Info("验收", "SV_IMPORT_DIR 导入返回");
     }
+    /// <summary>验收钩子：SV_SEARCH_BENCH=1，每项跑 5 次取最快和平均（单次采样会被 GC 干扰）。</summary>
+    private async Task RunSearchBenchIfRequestedAsync()
+    {
+        if (Environment.GetEnvironmentVariable("SV_SEARCH_BENCH") != "1") return;
+        if (_lib?.Root is null) { Log.Warn("搜索", "SV_SEARCH_BENCH：没有库"); return; }
+
+        var log = Path.Combine(Path.GetTempPath(), "sv-search.txt");
+        var sb = new System.Text.StringBuilder();
+
+        (double Min, double Avg) Measure(Action act, int n = 5)
+        {
+            var times = new List<double>();
+            for (int i = 0; i < n; i++)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                act();
+                sw.Stop();
+                times.Add(sw.Elapsed.TotalMilliseconds);
+            }
+            return (times.Min(), times.Average());
+        }
+
+        try
+        {
+            _suppressSearch = true;
+
+            var first = Measure(() => { _searchMode = true; LoadSearchView(); }, 3);
+            sb.AppendLine($"首次进入搜索（读全库+建卡片+预热拼音） 最快 {first.Min:0.0} ms / 平均 {first.Avg:0.0} ms，{_all.Count} 条");
+
+            var cached = Measure(() => { LoadSearchView(); }, 5);
+            sb.AppendLine($"再次进入搜索（命中缓存） 最快 {cached.Min:0.0} ms / 平均 {cached.Avg:0.0} ms");
+
+            var t1 = Measure(() => { SearchBox.Text = "拔"; ApplyFilter(); }, 5);
+            sb.AppendLine($"输入『拔』（首次全库筛） 最快 {t1.Min:0.0} ms / 平均 {t1.Avg:0.0} ms（{_view.Count} 条）");
+
+            var t2 = Measure(() => { SearchBox.Text = "拔刀"; ApplyFilter(); }, 5);
+            sb.AppendLine($"再打成『拔刀』（增量） 最快 {t2.Min:0.0} ms / 平均 {t2.Avg:0.0} ms（{_view.Count} 条）");
+
+            var t3 = Measure(() => { SearchBox.Text = "拨"; ApplyFilter(); }, 5);
+            sb.AppendLine($"改成『拨』（不扩展，回全库） 最快 {t3.Min:0.0} ms / 平均 {t3.Avg:0.0} ms（{_view.Count} 条）");
+
+            var t4 = Measure(() => { SearchBox.Text = "bd"; ApplyFilter(); }, 5);
+            sb.AppendLine($"拼音『bd』 最快 {t4.Min:0.0} ms / 平均 {t4.Avg:0.0} ms（{_view.Count} 条）");
+
+            var t5 = Measure(() => { SearchBox.Text = "拔刀x"; UpdateSearchAffordances(); }, 5);
+            sb.AppendLine($"输入框提示切换 UpdateSearchAffordances 最快 {t5.Min:0.0} ms / 平均 {t5.Avg:0.0} ms");
+
+            SearchBox.Text = "";
+            _suppressSearch = false;
+            await Task.Yield();
+        }
+        catch (Exception ex) { sb.AppendLine("FAILED: " + ex); }
+        finally
+        {
+            try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
+            Log.Info("搜索", "SV_SEARCH_BENCH 完成 → " + log);
+        }
+    }
     private void RunPurgeTestIfRequested()
     {
         if (Environment.GetEnvironmentVariable("SV_PURGE_TEST") != "1") return;

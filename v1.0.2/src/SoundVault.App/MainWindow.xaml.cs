@@ -212,6 +212,7 @@ public partial class MainWindow : Window
         await RunListTestIfRequestedAsync();
         await RunOrgTestIfRequestedAsync();
         await RunImportDirTestIfRequestedAsync();
+        await RunSearchBenchIfRequestedAsync();
         RunPurgeTestIfRequested();
         DumpDbIfRequested();
         await ThemeDialogTestIfRequestedAsync();
@@ -595,6 +596,7 @@ public partial class MainWindow : Window
                 LogStartup($"扫描 {Path.GetFileName(root)}：共 {result.Total} 个 / 新增 {result.Added} / 变更 {result.Changed} / 移除 {result.Removed} / {result.Elapsed.TotalMilliseconds:0} ms");
 
                 // 索引没变化就不重画界面：第二次启动完全不会闪
+                            BumpDataVersion();
                 if (change > 0) ReloadCurrentView(root);
 
             }
@@ -1150,7 +1152,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            ApplyFilter();
+            QueueFilter();          // P3：防抖，连打几个字只算一次
         }
 
         UpdateSearchStat();
