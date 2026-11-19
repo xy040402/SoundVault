@@ -86,6 +86,9 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
         int rows = itemCount == 0 ? 0 : (int)Math.Ceiling(itemCount / (double)_columns);
         UpdateScrollInfo(new Size(_columns * cw, rows * ch), new Size(vw, vh));
 
+        if (Environment.GetEnvironmentVariable("SV_SCROLL_TRACE") == "1")
+            Services.Log.Info("滚动", $"测量 items={itemCount} cols={_columns} rows={rows} extent={rows * ch:0} viewport={vh:0} offset={_offset.Y:0}");
+
         if (itemCount == 0 || !IsItemsHost)
         {
             CleanupChildren(-1, -1);
@@ -197,6 +200,14 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
                 RemoveInternalChildRange(0, InternalChildren.Count);
                 _lastCellW = -1;
                 _lastCellH = -1;
+
+                // 偏移也要回零：否则会沿用上一个视图的滚动位置，
+                // 内容变少时就出现"顶上半行 + 下面一大片空白"（v1.0.2 的坑）
+                if (_offset.Y != 0)
+                {
+                    _offset.Y = 0;
+                    _smooth?.SyncFromOutside(0);
+                }
                 break;
         }
 
