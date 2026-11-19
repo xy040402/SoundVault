@@ -637,42 +637,50 @@ public partial class MainWindow : Window
         public TimeSpan Elapsed => _sw.Elapsed;
     }
 
+    // 整条进度：0 → 0.08（枚举完）→ 0.96（解析完）→ 1（写库完）
+    // 用户看到的是"这个库总共导到哪了"，不是单个文件的进度。
+    private double _scanFraction;
+
     private void UpdateScanUi(ScanProgress p)
     {
         if (ScanPill.Visibility != Visibility.Visible) return;
 
         _phase.Touch(p.Phase);
 
+        double frac;
         if (p.Total > 0)
         {
-            ScanScale.ScaleX = p.Fraction;
+            frac = 0.08 + 0.88 * p.Fraction;
         }
         else
         {
-            // 枚举阶段：来回荡的跑马灯（0.15 → 0.45），表示"在动，但不知道总量"
+            // 枚举 / 写库：不知道总量，按时间慢慢往前爬，让人看到在动
             double t = _phase.Elapsed.TotalSeconds;
-            ScanScale.ScaleX = 0.15 + 0.15 * (1 + Math.Sin(t * 2.4)) / 2;
+            frac = 0.02 + 0.06 * (1 - Math.Exp(-t / 3));
         }
+
+        if (frac < _scanFraction) frac = _scanFraction;   // 永不回退
+        _scanFraction = frac;
+        ScanScale.ScaleX = frac;
 
         var sb = new System.Text.StringBuilder(p.Phase);
 
         if (p.Total > 0)
         {
             sb.Append($"  {p.Done:N0} / {p.Total:N0}");
+            sb.Append($"  {frac * 100:0}%");
             if (p.Done > 0 && p.Done < p.Total)
             {
                 double perItem = _phase.Elapsed.TotalMilliseconds / p.Done;
                 double leftMs = perItem * (p.Total - p.Done);
                 if (leftMs >= 1000) sb.Append($"  · 剩余 {FormatLeft(leftMs)}");
             }
+            if (!string.IsNullOrEmpty(p.Current)) sb.Append("  · " + Shorten(p.Current, 20));
         }
         else if (p.Done > 0)
         {
             sb.Append($"  {p.Done:N0} 个");
         }
-
-        if (!string.IsNullOrEmpty(p.Current) && p.Total > 0)
-            sb.Append("  · " + Shorten(p.Current, 22));
 
         ScanText.Text = sb.ToString();
     }

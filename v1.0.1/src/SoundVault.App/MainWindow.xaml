@@ -1016,7 +1016,8 @@
                                            Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                                 <Border Width="150" Height="3" CornerRadius="2" Margin="12,0,0,0"
                                         VerticalAlignment="Center" Background="{DynamicResource Divider}">
-                                    <Border x:Name="ScanFill" HorizontalAlignment="Left" CornerRadius="2"
+                                    <!-- Width 必须写死：没宽度时 DesiredSize=0，ScaleX 放大也还是 0，进度条看着永远不动 -->
+                                    <Border x:Name="ScanFill" HorizontalAlignment="Left" CornerRadius="2" Width="150"
                                             Background="{DynamicResource Accent}" RenderTransformOrigin="0,0.5">
                                         <Border.RenderTransform>
                                             <ScaleTransform x:Name="ScanScale" ScaleX="0"/>
