@@ -1023,6 +1023,15 @@
                                         </Border.RenderTransform>
                                     </Border>
                                 </Border>
+                                <!-- 取消：扫描支持 CancellationToken，这里接上（v1.0.1 / P1） -->
+                                <Border x:Name="ScanCancel" Margin="12,0,0,0" Padding="8,2" CornerRadius="6" Cursor="Hand"
+                                        Background="Transparent" BorderThickness="1" BorderBrush="{DynamicResource OverlayBorder}"
+                                        VerticalAlignment="Center">
+                                    <!-- 点击挂在 TextBlock 上：Border 不进 UIA 树，自动化/无障碍点不到 -->
+                                    <TextBlock x:Name="ScanCancelText" Text="取消" FontSize="11" Background="Transparent"
+                                               Foreground="{DynamicResource TextSecondary}" Cursor="Hand"
+                                               MouseLeftButtonDown="ScanCancel_Click"/>
+                                </Border>
                             </StackPanel>
                         </Border>
 

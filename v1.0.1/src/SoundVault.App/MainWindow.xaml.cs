@@ -580,6 +580,13 @@ public partial class MainWindow : Window
                     continue;
                 }
 
+                if (result.Cancelled)
+                {
+                    LogStartup($"扫描取消：{root}（已完成的不写库）");
+                    ShowToast("已取消扫描");
+                    continue;
+                }
+
                 RefreshLibraryCounts(root);
 
                 int change = result.Added + result.Changed + result.Removed;
@@ -608,22 +615,100 @@ public partial class MainWindow : Window
         ScanText.Text = text;
         ScanScale.ScaleX = 0;
         ScanPill.Visibility = Visibility.Visible;
+        if (ScanCancel is not null) ScanCancel.Visibility = Visibility.Visible;
+    }
+
+    // P1：进度文案。枚举阶段没有总数（Total=0）→ 走"跑马灯"，有总数时显示 已完成/总数 + 剩余时间
+    private PhaseTimer _phase = new();
+
+    private sealed class PhaseTimer
+    {
+        private readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
+        private string _phase = "";
+
+        /// <summary>阶段变了就重置计时，避免把枚举的时间算进解析的 ETA。</summary>
+        public void Touch(string phase)
+        {
+            if (phase == _phase) return;
+            _phase = phase;
+            _sw.Restart();
+        }
+
+        public TimeSpan Elapsed => _sw.Elapsed;
     }
 
     private void UpdateScanUi(ScanProgress p)
     {
         if (ScanPill.Visibility != Visibility.Visible) return;
 
-        ScanScale.ScaleX = p.Total > 0 ? p.Fraction : 0;
+        _phase.Touch(p.Phase);
 
-        string text = p.Phase;
-        if (p.Total > 0) text += $"  {p.Done:N0} / {p.Total:N0}";
-        ScanText.Text = text;
+        if (p.Total > 0)
+        {
+            ScanScale.ScaleX = p.Fraction;
+        }
+        else
+        {
+            // 枚举阶段：来回荡的跑马灯（0.15 → 0.45），表示"在动，但不知道总量"
+            double t = _phase.Elapsed.TotalSeconds;
+            ScanScale.ScaleX = 0.15 + 0.15 * (1 + Math.Sin(t * 2.4)) / 2;
+        }
+
+        var sb = new System.Text.StringBuilder(p.Phase);
+
+        if (p.Total > 0)
+        {
+            sb.Append($"  {p.Done:N0} / {p.Total:N0}");
+            if (p.Done > 0 && p.Done < p.Total)
+            {
+                double perItem = _phase.Elapsed.TotalMilliseconds / p.Done;
+                double leftMs = perItem * (p.Total - p.Done);
+                if (leftMs >= 1000) sb.Append($"  · 剩余 {FormatLeft(leftMs)}");
+            }
+        }
+        else if (p.Done > 0)
+        {
+            sb.Append($"  {p.Done:N0} 个");
+        }
+
+        if (!string.IsNullOrEmpty(p.Current) && p.Total > 0)
+            sb.Append("  · " + Shorten(p.Current, 22));
+
+        ScanText.Text = sb.ToString();
+    }
+
+    private static string FormatLeft(double ms)
+    {
+        var t = TimeSpan.FromMilliseconds(ms);
+        if (t.TotalSeconds < 60) return $"{t.TotalSeconds:0} 秒";
+        if (t.TotalMinutes < 60) return $"{(int)t.TotalMinutes} 分 {t.Seconds} 秒";
+        return $"{(int)t.TotalHours} 小时 {t.Minutes} 分";
+    }
+
+    private static string Shorten(string s, int max)
+        => s.Length <= max ? s : s.Substring(0, max - 1) + "…";
+
+    /// <summary>取消扫描（P1）：解析阶段不写库，直接回到原状。</summary>
+    private void ScanCancel_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            _scanCts?.Cancel();
+            SoundVault.App.Services.Log.Info("扫描", "用户点了取消");
+            if (ScanCancel is not null) ScanCancel.Visibility = Visibility.Collapsed;
+            ScanText.Text = "正在取消…";
+        }
+        catch (Exception ex)
+        {
+            SoundVault.App.Services.Log.Warn("扫描", "取消失败", ex);
+        }
     }
 
     private void EndScanPill()
     {
         _scanPillTimer.Stop();
+        if (ScanCancel is not null) ScanCancel.Visibility = Visibility.Collapsed;
         ScanPill.Visibility = Visibility.Collapsed;
     }
 

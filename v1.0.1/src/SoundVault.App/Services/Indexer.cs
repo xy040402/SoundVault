@@ -38,7 +38,16 @@ public sealed class Indexer
     public Indexer(IndexDb db) => _db = db;
 
     /// <summary>验收钩子：SV_SLOW_SCAN=1 时每个文件额外睡一会儿，方便截"扫描进度"的图。</summary>
-    private static readonly bool SlowScan = Environment.GetEnvironmentVariable("SV_SLOW_SCAN") == "1";
+    // 验收钩子：SV_SLOW_SCAN=1 时每个文件睡 25ms；给数字则按毫秒睡（便于观察进度条）
+    private static readonly int SlowScanMs = ParseSlowScan();
+
+    private static int ParseSlowScan()
+    {
+        var v = Environment.GetEnvironmentVariable("SV_SLOW_SCAN");
+        if (string.IsNullOrWhiteSpace(v)) return 0;
+        if (int.TryParse(v, out var ms) && ms > 0) return ms;
+        return v == "1" ? 25 : 0;
+    }
 
     public Task<ScanResult> ScanAsync(string root, IProgress<ScanProgress>? progress, CancellationToken ct)
         => Task.Run(() => Scan(root, progress, ct), ct);
@@ -53,6 +62,7 @@ public sealed class Indexer
         // ① 枚举（一次目录遍历，拿到全部路径 + 大小 + 修改时间）
         progress?.Report(new ScanProgress { Phase = "正在枚举文件", Total = 0 });
         var files = new List<(string Path, long Size, long Mtime)>(1024);
+        var enumTick = Stopwatch.StartNew();
         foreach (var f in EnumerateAudio(root))
         {
             if (ct.IsCancellationRequested)
@@ -61,8 +71,22 @@ public sealed class Indexer
                 return new ScanResult { Lib = root, Cancelled = true };
             }
             files.Add(f);
+
+            // P1：枚举也报数，几万个文件时用户能看到数字在涨，而不是"卡死"
+            if (enumTick.ElapsedMilliseconds >= 180)
+            {
+                enumTick.Restart();
+                progress?.Report(new ScanProgress
+                {
+                    Phase = "正在枚举文件",
+                    Done = files.Count,
+                    Total = 0,
+                    Current = Path.GetFileName(f.Item1)
+                });
+            }
         }
         Log.Info("扫描", $"枚举完成 files={files.Count} 用时={sw.ElapsedMilliseconds}ms");
+        progress?.Report(new ScanProgress { Phase = "已找到文件", Done = files.Count, Total = files.Count });
 
         // ② 跟索引比对，挑出真正需要读文件的
         var stamps = _db.Stamps(root);
@@ -72,6 +96,8 @@ public sealed class Indexer
             if (!stamps.TryGetValue(f.Path, out var old) || old.Size != f.Size || old.Mtime != f.Mtime)
                 work.Add(f);
         }
+
+        progress?.Report(new ScanProgress { Phase = "正在比对索引", Done = files.Count, Total = files.Count });
 
         int added = work.Count(w => !stamps.ContainsKey(w.Path));
         int changed = work.Count - added;
@@ -106,7 +132,7 @@ public sealed class Indexer
                 // 慢文件单独记一行，方便抓性能瓶颈（不逐文件写日志，避免日志爆炸）
                 if (ms > 2000) Log.Warn("扫描", $"慢文件 {item.Path} 用时={ms:0}ms 大小={item.Size / 1024}KB");
 
-                if (SlowScan) Thread.Sleep(25);
+                if (SlowScanMs > 0) Thread.Sleep(SlowScanMs);
 
                 int n = Interlocked.Increment(ref done);
                 if (lastReport.ElapsedMilliseconds >= 120 || n == work.Count)
