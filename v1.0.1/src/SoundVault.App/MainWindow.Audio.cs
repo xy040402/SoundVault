@@ -113,14 +113,7 @@ public partial class MainWindow
         _audio.Stop(30);
         SetPlaying(null);
 
-        // #23：拖出去就算「本工程已用」
-        foreach (var path in paths)
-        {
-            _store.Touch(path, used: true);
-            var item = _all.FirstOrDefault(x => string.Equals(x.FilePath, path, StringComparison.OrdinalIgnoreCase));
-            if (item is not null) item.UsedToday = true;
-        }
-        _store.Save();
+        // 「已用」角标已在 v1.0.1 去掉（用户不需要），拖出去只保留原本的拖拽行为
 
         var data = new DataObject(DataFormats.FileDrop, paths);
         ShowDragGhost(paths);
@@ -204,8 +197,7 @@ public partial class MainWindow
     {
         if (a is not null)                            // #23：记一笔播放历史
         {
-            _store.Touch(a.FilePath, used: false);
-            a.UsedToday = true;
+            _store.Touch(a.FilePath);
         }
 
         foreach (var it in _all) it.IsPlaying = ReferenceEquals(it, a);

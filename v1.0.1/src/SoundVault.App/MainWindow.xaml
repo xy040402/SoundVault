@@ -291,22 +291,6 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 「本工程已用」角标（v0.20）：今天拖出去过或播过 -->
-                    <TextBlock Grid.RowSpan="5" Text="已用" FontSize="8.5" Margin="0,0,2,1" Padding="5,1"
-                               HorizontalAlignment="Right" VerticalAlignment="Bottom" IsHitTestVisible="False"
-                               Opacity="0.85" Foreground="{DynamicResource Accent}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding UsedToday}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

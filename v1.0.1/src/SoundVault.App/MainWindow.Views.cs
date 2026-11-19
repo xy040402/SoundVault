@@ -366,7 +366,6 @@ public partial class MainWindow
         {
             Index = ParseIndex(r.Path),
             DisplayName = ParseDisplayName(r.Path),
-            UsedToday = _store.UsedToday(r.Path),
             FileName = Path.GetFileName(r.Path),
             FilePath = r.Path,
             DurationMs = r.DurationMs,

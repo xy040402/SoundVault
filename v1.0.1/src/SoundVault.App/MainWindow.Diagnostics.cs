@@ -297,7 +297,7 @@ public partial class MainWindow
         try
         {
             var r = PurgeLibraryData(_lib.RootPath);
-            TryWritePurge($"assets={r.Assets} played={r.Played} used={r.Used} colItems={r.ColItems} tags={r.Tags}");
+            TryWritePurge($"assets={r.Assets} played={r.Played} colItems={r.ColItems} tags={r.Tags}");
         }
         catch (Exception ex) { TryWritePurge("FAILED: " + ex.Message); }
     }

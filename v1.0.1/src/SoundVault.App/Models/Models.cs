@@ -83,8 +83,6 @@ public sealed class AssetItem : INotifyPropertyChanged
     public string DisplayName { get; init; } = "";
     public string FileName { get; init; } = "";
     public string FilePath { get; set; } = "";
-    /// <summary>今天拖出去用过或播放过（卡片右上角显示「已用」）。</summary>
-    public bool UsedToday { get; set; }
     public string Meta { get; init; } = "";
     public double DurationMs { get; init; }
     public int SampleRate { get; init; }

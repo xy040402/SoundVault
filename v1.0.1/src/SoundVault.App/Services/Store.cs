@@ -36,10 +36,9 @@ public sealed class Store
     public double Glass { get; set; } = 0.5;
     /// <summary>手动集合。</summary>
     public List<Collection> Collections { get; set; } = new();
-    /// <summary>每个文件最后一次播放的时间（UTC ticks），用于"最近播放"与"已用"角标。</summary>
+    /// <summary>每个文件最后一次播放的时间（UTC ticks），用于"最近播放"。</summary>
     public Dictionary<string, long> PlayedAt { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>每个文件最后一次被拖出去用掉的时间（UTC ticks）。</summary>
-    public Dictionary<string, long> UsedAt { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>显示名清洗规则（一行一条，匹配就剥掉最后一个短横线之后的那段）。</summary>
     public List<string> CleanupRules { get; set; } = new() { "版权", "素材" };
     /// <summary>是否已经看过新手引导。</summary>
@@ -89,16 +88,10 @@ public sealed class Store
         }
     }
 
-    /// <summary>今天有没有用过/播过（同一本地日期）。</summary>
-    public bool UsedToday(string path) => IsToday(UsedAt, path) || IsToday(PlayedAt, path);
-
-    public static bool IsToday(Dictionary<string, long> map, string path) =>
-        map.TryGetValue(path, out var ticks) && new DateTime(ticks, DateTimeKind.Utc).ToLocalTime().Date == DateTime.Today;
-
     /// <summary>记一笔播放/使用时间，并把表裁到 2000 条以内。</summary>
-    public void Touch(string path, bool used)
+    public void Touch(string path)
     {
-        var map = used ? UsedAt : PlayedAt;
+        var map = PlayedAt;
         map[path] = DateTime.UtcNow.Ticks;
         if (map.Count > 2000)
         {
@@ -129,10 +122,10 @@ public sealed class Store
     }
 
     /// <summary>
-    /// 删库时把这个库名下的用户数据一起清掉：评分/收藏、已用/播放在、以及集合里的引用。
-    /// 不清的话，重新导入同一个文件夹会"记得"上次的已用和评分 —— 用户看到的是脏数据。
+    /// 删库时把这个库名下的用户数据一起清掉：评分/收藏、播放记录、以及集合里的引用。
+    /// 不清的话，重新导入同一个文件夹会"记得"上次的评分 —— 用户看到的是脏数据。
     /// </summary>
-    public (int Assets, int Played, int Used, int CollectionItems) PurgeLibrary(string root)
+    public (int Assets, int Played, int CollectionItems) PurgeLibrary(string root)
     {
         string prefix;
         try { prefix = Path.GetFullPath(root).TrimEnd('\\') + "\\"; }
@@ -140,16 +133,15 @@ public sealed class Store
 
         bool Under(string p) => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
 
-        int assets = 0, played = 0, used = 0, colItems = 0;
+        int assets = 0, played = 0, colItems = 0;
 
         foreach (var k in Assets.Keys.Where(Under).ToList()) { Assets.Remove(k); assets++; }
         foreach (var k in PlayedAt.Keys.Where(Under).ToList()) { PlayedAt.Remove(k); played++; }
-        foreach (var k in UsedAt.Keys.Where(Under).ToList()) { UsedAt.Remove(k); used++; }
 
         foreach (var c in Collections) colItems += c.Paths.RemoveAll(Under);
 
         Save();
-        return (assets, played, used, colItems);
+        return (assets, played, colItems);
     }
 
     public void Save()
