@@ -1,81 +1,196 @@
 <Window x:Class="SoundVault.Setup.UninstallWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="卸载 音匣 SoundVault" Width="560" Height="470" WindowStyle="None"
+        Title="卸载 音匣 SoundVault" Width="520" Height="400" WindowStyle="None"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
         Background="#FF141821" FontFamily="Microsoft YaHei UI" FontSize="12"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         MouseLeftButtonDown="Window_MouseDown">
 
+    <Window.Resources>
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="18,0"/>
+            <Setter Property="Foreground" Value="#FF0B1220"/>
+            <Setter Property="Background" Value="#FF38BDF8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="7" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#FFEF4444"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="GhostBtn" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Foreground" Value="#FFC8D0DE"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#FF2A3040"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="7" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FF1B2130"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FFF2F5FA"/>
+        </Style>
+
+        <Style x:Key="PageHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="#FF8A93A6"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
     <Border BorderBrush="#FF2A3040" BorderThickness="1">
         <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="64"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="64"/>
-            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="164"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- 标题 -->
-            <Grid Grid.Row="0" Background="#FF1B2130">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <Image Width="30" Height="30" Stretch="Uniform" Source="/Assets/logo-256.png"
-                           RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
-                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="音匣 SoundVault" FontSize="14" FontWeight="SemiBold" Foreground="#FFF2F5FA"/>
-                        <TextBlock Text="卸载程序" FontSize="10.5" Foreground="#FF8A93A6"/>
-                    </StackPanel>
+            <!-- 左侧品牌竖栏（与安装器一致） -->
+            <Grid Grid.Column="0">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FF38BDF8" Offset="0"/>
+                        <GradientStop Color="#FF6D28D9" Offset="0.62"/>
+                        <GradientStop Color="#FF3B0F6B" Offset="1"/>
+                    </LinearGradientBrush>
+                </Grid.Background>
+
+                <StackPanel VerticalAlignment="Top" Margin="0,40,0,0">
+                    <Image Width="88" Height="88" Stretch="Uniform" Source="/Assets/logo-256.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Center"/>
+                    <TextBlock Text="音匣" FontSize="17" FontWeight="SemiBold" Foreground="White"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="SoundVault" FontSize="11" Foreground="#DDEDE9FF"
+                               HorizontalAlignment="Center" Margin="0,2,0,0"/>
                 </StackPanel>
-                <Button Content="✕" Width="46" Height="32" HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Background="Transparent" BorderThickness="0" Foreground="#FF8A93A6" FontSize="12"
-                        Click="Close_Click"/>
+
+                <StackPanel VerticalAlignment="Bottom" Margin="18,0,0,16">
+                    <TextBlock x:Name="SideVersion" Text="v1.0.1" FontSize="10" Foreground="#CCFFFFFF"/>
+                    <TextBlock Text="卸载向导" FontSize="9.5" Foreground="#99FFFFFF" Margin="0,2,0,0"/>
+                </StackPanel>
             </Grid>
 
-            <!-- 主体 -->
-            <StackPanel Grid.Row="1" Margin="22,18,22,0">
-                <TextBlock x:Name="Headline" Text="即将卸载 音匣 SoundVault"
-                           FontSize="15" FontWeight="SemiBold" Foreground="#FFF2F5FA"/>
+            <!-- 右侧 -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="56"/>
+                </Grid.RowDefinitions>
 
-                <TextBlock x:Name="IntroText" Margin="0,8,0,0" FontSize="11" Foreground="#FFC8D0DE"
-                           TextWrapping="Wrap" LineHeight="19"
-                           Text="将从下面的位置移除程序文件、开始菜单与桌面快捷方式、以及「应用和功能」里的登记项。"/>
+                <Button x:Name="CloseBtn" Content="✕" Width="42" Height="30" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" Background="Transparent" BorderThickness="0"
+                        Foreground="#FF8A93A6" FontSize="11" Cursor="Hand" Click="Close_Click"/>
 
-                <Border Background="#FF1B2130" BorderBrush="#FF2A3040" BorderThickness="1" CornerRadius="8"
-                        Padding="12,10" Margin="0,12,0,0">
-                    <StackPanel>
-                        <TextBlock Text="安装位置" FontSize="10" Foreground="#FF8A93A6"/>
-                        <TextBlock x:Name="DirText" FontSize="11" Margin="0,3,0,0" Foreground="#FFF2F5FA"
-                                   TextWrapping="Wrap"/>
-                        <TextBlock Text="软件数据" FontSize="10" Margin="0,10,0,0" Foreground="#FF8A93A6"/>
-                        <TextBlock x:Name="DataText" FontSize="11" Margin="0,3,0,0" Foreground="#FFC8D0DE"
-                                   TextWrapping="Wrap"/>
+                <Grid Grid.Row="0" Margin="26,40,26,0">
+
+                    <!-- ① 确认 -->
+                    <StackPanel x:Name="PageConfirm">
+                        <TextBlock x:Name="Headline" Text="确定要卸载 音匣 吗？" Style="{StaticResource PageTitle}"/>
+                        <TextBlock x:Name="IntroText" Margin="0,8,0,0" Style="{StaticResource PageHint}"
+                                   Text="卸载会移除程序、快捷方式和「应用和功能」里的登记项。"/>
+
+                        <TextBlock Text="程序位置" Style="{StaticResource PageHint}" Margin="0,14,0,2"/>
+                        <TextBlock x:Name="DirText" Foreground="#FFC8D0DE" FontSize="10.5" TextWrapping="Wrap" Text=""/>
+
+                        <TextBlock Text="软件数据（默认保留）" Style="{StaticResource PageHint}" Margin="0,10,0,2"/>
+                        <TextBlock x:Name="DataText" Foreground="#FFC8D0DE" FontSize="10.5" TextWrapping="Wrap" Text=""/>
+
+                        <CheckBox x:Name="DeleteDataBox" Content="同时删除软件数据"
+                                  Foreground="#FFFCA5A5" Margin="0,14,0,0"/>
+                        <TextBlock Text="会删掉评分、标签、集合、播放历史，删了不能恢复。"
+                                   Style="{StaticResource PageHint}" Margin="22,4,0,0"/>
+
+                        <TextBlock Text="硬盘上的音效文件不受影响。" Style="{StaticResource PageHint}" Margin="0,12,0,0"/>
+                    </StackPanel>
+
+                    <!-- ② 卸载中 -->
+                    <StackPanel x:Name="PageRunning" Visibility="Collapsed">
+                        <TextBlock Text="正在卸载" Style="{StaticResource PageTitle}"/>
+
+                        <Border x:Name="ProgressTrack" Height="6" CornerRadius="3" Background="#FF1B2130" Margin="0,20,0,0">
+                            <Grid>
+                                <Border x:Name="ProgressFill" HorizontalAlignment="Left" Width="0" CornerRadius="3"
+                                        Background="#FF38BDF8"/>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock x:Name="LogText" Foreground="#FFC8D0DE" FontSize="11" Margin="0,12,0,0"
+                                   TextWrapping="Wrap" Height="60" Text="准备中…"/>
+
+                        <TextBlock Text="卸载过程中请不要关闭这个窗口。" Style="{StaticResource PageHint}" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- ③ 完成 -->
+                    <StackPanel x:Name="PageDone" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="26" Height="26" CornerRadius="13" Background="#FF22C55E">
+                                <TextBlock Text="✓" Foreground="White" FontSize="14" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="卸载完成" Style="{StaticResource PageTitle}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="DoneText" Margin="0,14,0,0" Style="{StaticResource PageHint}" Text=""/>
+                        <TextBlock x:Name="DoneDataText" Margin="0,8,0,0" Style="{StaticResource PageHint}" Text=""/>
+                        <TextBlock Text="感谢使用。硬盘上的音效文件从头到尾没有被改动。"
+                                   Style="{StaticResource PageHint}" Margin="0,14,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 按钮条 -->
+                <Border Grid.Row="1" Background="#FF1B2130" BorderBrush="#FF2A3040" BorderThickness="0,1,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Margin="0,0,18,0">
+                        <Button x:Name="CancelBtn" Content="取消" Width="80" Margin="0,0,8,0"
+                                Style="{StaticResource GhostBtn}" Click="Close_Click"/>
+                        <Button x:Name="ActionBtn" Content="卸载" Width="104"
+                                Style="{StaticResource DangerBtn}" Click="Action_Click"/>
                     </StackPanel>
                 </Border>
-
-                <!-- 数据选项 -->
-                <CheckBox x:Name="DeleteDataBox" Margin="0,14,0,0" Foreground="#FFF2F5FA"
-                          Content="同时删除软件数据（评分、标签、集合、播放历史）"/>
-                <TextBlock x:Name="DataHint" Margin="24,6,0,0" FontSize="10.5" Foreground="#FF8A93A6"
-                           TextWrapping="Wrap"
-                           Text="不勾选：数据保留，以后重装会接着用；勾选：删了就找不回来（你的音效文件不受影响）。"/>
-
-                <!-- 进度 -->
-                <Border x:Name="ProgressTrack" Height="6" CornerRadius="3" Background="#FF1B2130" Margin="0,20,0,0">
-                    <Border x:Name="ProgressFill" HorizontalAlignment="Left" Width="0" CornerRadius="3"
-                            Background="#FF38BDF8"/>
-                </Border>
-                <TextBlock x:Name="LogText" Foreground="#FF8A93A6" FontSize="10.5" Margin="0,8,0,0"/>
-            </StackPanel>
-
-            <!-- 按钮 -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Margin="0,0,20,0">
-                <Button x:Name="CancelBtn" Content="取消" Width="88" Height="32" Margin="0,0,8,0"
-                        Background="#FF1B2130" Foreground="#FFC8D0DE" BorderBrush="#FF2A3040" BorderThickness="1"
-                        Click="Close_Click"/>
-                <Button x:Name="ActionBtn" Content="卸载" Width="110" Height="32"
-                        Background="#FF38BDF8" Foreground="#FF0B1017" BorderThickness="0" FontWeight="SemiBold"
-                        Click="Action_Click"/>
-            </StackPanel>
+            </Grid>
         </Grid>
     </Border>
 </Window>

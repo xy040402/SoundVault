@@ -2,7 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -10,59 +12,79 @@ using Microsoft.Win32;
 namespace SoundVault.Setup;
 
 /// <summary>
-/// 卸载向导：确认 → 选项（是否删数据）→ 进度 → 完成。和安装器同一套外观。
+/// 卸载向导（3 步）：确认 → 卸载中 → 完成。和安装器同一套外观。
 /// </summary>
 public partial class UninstallWindow : Window
 {
     private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SoundVault";
 
     private readonly string _dir;
-    private bool _running;          // 正在卸载
-    private bool _done;             // 卸完，等用户点「完成」
+    private int _step;                 // 0 确认 / 1 卸载中 / 2 完成
+    private bool _deleteData;
+    private bool _running;
 
     public UninstallWindow()
     {
         InitializeComponent();
+
+        SideVersion.Text = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0");
         _dir = (AppContext.BaseDirectory ?? "").TrimEnd(Path.DirectorySeparatorChar);
 
         DirText.Text = _dir.Length > 0 ? _dir : "（未知）";
-        DataText.Text = DataDir + Environment.NewLine + "（评分、标签、集合、播放历史等都在这里）";
+        DataText.Text = DataDir;
+        SetStep(0);
     }
 
     private static string DataDir =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SoundVault");
 
+    // ── 步骤 ───────────────────────────────────────────────
+
+    private void SetStep(int s)
+    {
+        _step = s;
+
+        PageConfirm.Visibility = s == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PageRunning.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PageDone.Visibility = s == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        ActionBtn.Content = s == 2 ? "完成" : "卸载";
+        ActionBtn.Style = (Style)FindResource(s == 2 ? "PrimaryBtn" : "DangerBtn");
+        ActionBtn.IsEnabled = s != 1;
+        CancelBtn.Content = s == 2 ? "关闭" : "取消";
+        CancelBtn.Visibility = s == 2 ? Visibility.Collapsed : Visibility.Visible;
+        CancelBtn.IsEnabled = s != 1;
+        CloseBtn.IsEnabled = s != 1;
+    }
+
     private void Window_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
+        if (e.LeftButton == MouseButtonState.Pressed) try { DragMove(); } catch { }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {
-        if (_running) return;           // 正在删的时候不让关
-        if (_done) FinishAndClose();
+        if (_running) return;          // 正在删的时候不让关
+        if (_step == 2) FinishAndClose();
         else Close();
     }
 
-    private async void Action_Click(object sender, RoutedEventArgs e)
+    private void Action_Click(object sender, RoutedEventArgs e)
     {
         if (_running) return;
 
-        // 完成态：这一下是「完成」
-        if (_done)
-        {
-            FinishAndClose();
-            return;
-        }
+        if (_step == 2) { FinishAndClose(); return; }
 
-        _running = true;
-        CancelBtn.IsEnabled = false;
-        ActionBtn.IsEnabled = false;
-        DeleteDataBox.IsEnabled = false;
-        SetupLog.Info("卸载界面", $"开始卸载 目录={_dir} 同时删数据={DeleteDataBox.IsChecked == true}");
+        _ = RunUninstallAsync();
+    }
 
-        var deleteData = DeleteDataBox.IsChecked == true;
-        if (deleteData)
+    // ── 卸载 ───────────────────────────────────────────────
+
+    private async Task RunUninstallAsync()
+    {
+        _deleteData = DeleteDataBox.IsChecked == true;
+
+        if (_deleteData)
         {
             var sure = MessageBox.Show(this,
                 "确定要一并删除软件数据吗？\n\n" +
@@ -72,9 +94,15 @@ public partial class UninstallWindow : Window
             if (sure != MessageBoxResult.Yes)
             {
                 DeleteDataBox.IsChecked = false;
-                deleteData = false;
+                _deleteData = false;
             }
         }
+
+        _running = true;
+        SetStep(1);
+        SetupLog.Info("卸载界面", $"开始卸载 目录={_dir} 同时删数据={_deleteData}");
+
+        await Task.Yield();           // 先画出"卸载中"这一页
 
         double trackWidth = ProgressTrack.ActualWidth > 4 ? ProgressTrack.ActualWidth - 2 : 300;
         void Report(double done, string text)
@@ -82,7 +110,7 @@ public partial class UninstallWindow : Window
             ProgressFill.Width = Math.Clamp(done, 0, 1) * trackWidth;
             LogText.Text = text;
             Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-            Thread.Sleep(160);
+            Thread.Sleep(150);
         }
 
         try
@@ -105,9 +133,8 @@ public partial class UninstallWindow : Window
             var startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "音匣 SoundVault");
             try { if (Directory.Exists(startMenu)) Directory.Delete(startMenu, recursive: true); } catch { }
 
-            // 3) 注册表
+            // 3) 注册表（只删指向自己这个目录的登记项）
             Report(0.45, "正在清理「应用和功能」里的登记项…");
-            // 只删指向自己这个目录的登记项（v0.54）
             try
             {
                 using var key = Registry.CurrentUser.OpenSubKey(UninstallKey);
@@ -119,7 +146,6 @@ public partial class UninstallWindow : Window
 
             // 4) 程序文件
             Report(0.6, "正在删除程序文件…");
-            var self = Environment.ProcessPath ?? "";
             foreach (var name in new[] { "音匣.exe", "SoundVault.App.exe" })
             {
                 var f = Path.Combine(_dir, name);
@@ -127,45 +153,34 @@ public partial class UninstallWindow : Window
             }
 
             // 5) 软件数据（可选）
-            if (deleteData)
+            if (_deleteData)
             {
-                Report(0.8, "正在删除软件数据（评分 / 标签 / 集合）…");
+                Report(0.85, "正在删除软件数据（评分 / 标签 / 集合）…");
                 try { if (Directory.Exists(DataDir)) Directory.Delete(DataDir, recursive: true); } catch { }
             }
             else
             {
-                Report(0.8, "软件数据已保留。");
+                Report(0.85, "软件数据已保留。");
             }
 
             SetupLog.Info("卸载界面", "卸载完成 ✔");
             Report(1.0, "卸载完成 ✔");
 
-            // 完成态
-            Headline.Text = "卸载完成";
-            IntroText.Text = deleteData
-                ? "程序已移除，软件数据也已删除。你的音效文件（硬盘上的音频）从头到尾没有被改动。"
+            DoneText.Text = _deleteData
+                ? "程序已移除，软件数据也已删除。"
                 : "程序已移除，软件数据保留着 —— 以后重装音匣会接着用，评分和标签都还在。";
-            LogText.Text = deleteData ? "软件数据已删除。" : "软件数据保留在：" + DataDir;
-            DataHint.Visibility = Visibility.Collapsed;
-            DeleteDataBox.Visibility = Visibility.Collapsed;
-            ProgressTrack.Visibility = Visibility.Collapsed;
+            DoneDataText.Text = _deleteData ? "" : "数据位置：" + DataDir;
 
-            ActionBtn.Content = "完成";
-            ActionBtn.IsEnabled = true;
-            CancelBtn.Content = "关闭";
-            CancelBtn.IsEnabled = true;
-            CancelBtn.Visibility = Visibility.Collapsed;
-            _running = false;        // 关键：不清这个，X 和「完成」都会被上面拦掉
-            _done = true;
+            _running = false;
+            SetStep(2);
         }
         catch (Exception ex)
         {
             SetupLog.Error("卸载界面", "卸载出错", ex);
-            LogText.Text = "卸载时出错：" + ex.Message;
             _running = false;
-            CancelBtn.IsEnabled = true;
-            ActionBtn.IsEnabled = true;
-            DeleteDataBox.IsEnabled = true;
+            SetStep(0);
+            Headline.Text = "卸载没有完成";
+            IntroText.Text = "出错了：" + ex.Message + "\n可以关掉这个窗口，手动删除安装目录。";
         }
     }
 
@@ -177,7 +192,7 @@ public partial class UninstallWindow : Window
             var self = Environment.ProcessPath ?? "";
             if (File.Exists(self) && Directory.Exists(_dir) && self.StartsWith(_dir, StringComparison.OrdinalIgnoreCase))
             {
-                var tmp = Path.Combine(Path.GetTempPath(), "sv-uninstall-" + Guid.NewGuid().ToString("N")[..8] + ".exe");
+                var tmp = Path.Combine(Path.GetTempPath(), "sv-uninstall-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".exe");
                 File.Copy(self, tmp, overwrite: true);
                 Process.Start(new ProcessStartInfo(tmp, "--cleanup \"" + _dir + "\" " + Environment.ProcessId) { UseShellExecute = true });
             }

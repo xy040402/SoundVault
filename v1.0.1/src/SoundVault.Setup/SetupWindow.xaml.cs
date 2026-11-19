@@ -2,55 +2,238 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace SoundVault.Setup;
 
+/// <summary>
+/// 安装向导（4 步）：欢迎 → 选择位置 → 安装中 → 完成。
+/// 布局照 NSIS MUI2 那种：左侧品牌竖栏 + 右侧内容 + 底部按钮条。
+/// </summary>
 public partial class SetupWindow : Window
 {
     private const string AppExeName = "音匣.exe";
     private const string UninstallerName = "卸载 音匣.exe";
 
-    private bool _installed;                 // 已经装完，等用户点「完成」
-    private string _installedDir = "";
-
-    private bool _autoStart;
-
-    /// <summary>提权重启后用来预填安装位置并自动开装。</summary>
-    public void PresetTarget(string dir, bool autoStart)
-    {
-        PathBox.Text = dir;
-        _autoStart = autoStart;
-        Loaded += (_, _) =>
-        {
-            if (!_autoStart) return;
-            _autoStart = false;
-            Install_Click(InstallBtn, new RoutedEventArgs());
-        };
-    }
+    private int _step;                    // 0 欢迎 / 1 位置 / 2 安装中 / 3 完成
+    private string _installDir = "";
 
     public SetupWindow()
     {
         InitializeComponent();
 
+        SideVersion.Text = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0");
         PathBox.Text = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             @"Programs\SoundVault");
 
         if (!Installer.HasPayload)
+            Notice("安装包里没有找到主程序（打包时 _local\\dist\\音匣.exe 不存在），这个安装包是坏的。");
+
+        SetStep(0);
+    }
+
+    /// <summary>提权重启后：预填安装位置；autoStart=true 就直接开始装。</summary>
+    public void PresetTarget(string dir, bool autoStart)
+    {
+        PathBox.Text = dir;
+        _installDir = dir;
+
+        if (!autoStart) { SetStep(1); return; }
+
+        Loaded += async (_, _) =>
         {
-            InstallBtn.IsEnabled = false;
-            LogText.Text = "安装包里没有找到主程序（打包时 _local\\dist\\音匣.exe 不存在）。";
+            SetStep(1);
+            await RunInstallAsync();
+        };
+    }
+
+    // ── 步骤切换 ───────────────────────────────────────────
+
+    private void SetStep(int s)
+    {
+        _step = s;
+
+        PageWelcome.Visibility = s == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PagePath.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PageInstall.Visibility = s == 2 ? Visibility.Visible : Visibility.Collapsed;
+        PageFinish.Visibility = s == 3 ? Visibility.Visible : Visibility.Collapsed;
+
+        BackBtn.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+        NextBtn.Content = s switch
+        {
+            0 => "下一步",
+            1 => "安装",
+            3 => "完成",
+            _ => "请稍候…"
+        };
+        NextBtn.IsEnabled = s != 2;
+
+        CancelBtn.Content = s == 3 ? "关闭" : "取消";
+        CancelBtn.IsEnabled = s != 2;
+        CloseBtn.IsEnabled = s != 2;
+    }
+
+    private void Notice(string text, bool warn = true)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            NoticeBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        NoticeText.Text = text;
+        NoticeText.Foreground = warn
+            ? System.Windows.Media.Brushes.Goldenrod
+            : System.Windows.Media.Brushes.LightGreen;
+        NoticeBar.Visibility = Visibility.Visible;
+    }
+
+    private void Back_Click(object sender, RoutedEventArgs e)
+    {
+        if (_step == 1) SetStep(0);
+    }
+
+    private void Next_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_step)
+        {
+            case 0:
+                SetStep(1);
+                PathBox.Focus();
+                break;
+            case 1:
+                _ = RunInstallAsync();
+                break;
+            case 3:
+                FinishAndClose();
+                break;
         }
     }
+
+    private void FinishAndClose()
+    {
+        if (LaunchBox.IsChecked == true && _installDir.Length > 0)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(Path.Combine(_installDir, AppExeName)) { UseShellExecute = true });
+            }
+            catch { }
+        }
+        SetupLog.Info("安装界面", "用户点完成，关闭安装器");
+        Close();
+    }
+
+    // ── 安装 ───────────────────────────────────────────────
+
+    private async Task RunInstallAsync()
+    {
+        var dir = Installer.ResolveInstallDir(PathBox.Text.Trim());
+        PathBox.Text = dir;
+        if (dir.Length == 0)
+        {
+            Notice("请选择安装位置。");
+            SetStep(1);
+            return;
+        }
+
+        Notice("");
+        SetStep(2);
+        InstallTargetText.Text = "目标：" + dir;
+        LogText.Text = "准备中…";
+        ProgressFill.Width = 0;
+        SetupLog.Info("安装界面", $"点击安装 目标={dir}");
+
+        await Task.Yield();      // 先把"安装中"这一页画出来，再做检查
+
+        // 1) 有正在运行的实例？问一句，关掉才继续
+        if (!EnsureAppClosed())
+        {
+            SetStep(1);
+            Notice("已取消：请先关闭正在运行的音匣，再点「安装」。");
+            return;
+        }
+
+        // 2) 旧版本装在别的位置？提示先卸载
+        if (TryGetExisting(out var oldPath, out var oldVersion) && !SameDir(oldPath, dir))
+        {
+            if (!RemoveOldInstall(oldPath, oldVersion, dir))
+            {
+                SetStep(1);
+                Notice("已取消：旧版本没有卸载。");
+                return;
+            }
+        }
+
+        // 3) 目标目录不可写（Program Files 之类）→ 提权重启自己，回到"位置"这一步
+        if (!Installer.CanWriteTo(dir))
+        {
+            try
+            {
+                var exe = Environment.ProcessPath ?? "";
+                var psi = new ProcessStartInfo(exe, $"--elevated \"{dir}\"")
+                {
+                    UseShellExecute = true,
+                    Verb = "runas"
+                };
+                SetupLog.Info("提权", "目标不可写，重启自身请求管理员 → " + dir);
+                Process.Start(psi);
+                Application.Current.Shutdown();
+                return;
+            }
+            catch (Exception ex)
+            {
+                SetupLog.Error("提权", "提权被拒绝（用户取消 UAC？）", ex);
+                SetStep(1);
+                Notice("需要管理员权限才能装到这里，但提权被拒绝：" + ex.Message);
+                return;
+            }
+        }
+
+        // 4) 安装（必须在 UI 线程：建快捷方式用 WScript.Shell，COM 需要 STA）
+        double trackWidth = ProgressTrack.ActualWidth > 4 ? ProgressTrack.ActualWidth - 2 : 300;
+        void Report(double done, string text)
+        {
+            ProgressFill.Width = Math.Clamp(done, 0, 1) * trackWidth;
+            LogText.Text = text;
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+            Thread.Sleep(120);
+        }
+
+        try
+        {
+            Installer.Install(dir,
+                createStartMenu: StartMenuBox.IsChecked == true,
+                createDesktop: DesktopBox.IsChecked == true,
+                progress: (d, t) => Report(d, t));
+
+            ProgressFill.Width = trackWidth;
+            _installDir = dir;
+            FinishPathText.Text = "音匣 已安装到：" + dir;
+            SetupLog.Info("安装界面", "安装完成 ✔ " + dir);
+            SetStep(3);
+        }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装界面", "安装失败", ex);
+            SetStep(1);
+            Notice("安装失败：" + ex.Message);
+        }
+    }
+
+    // ── 窗口拖动 / 关闭 ─────────────────────────────────────
 
     private void Window_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
         try { DragMove(); } catch { }
     }
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     // ── 升级检测（v0.44）────────────────────────────────────
 
@@ -101,6 +284,7 @@ public partial class SetupWindow : Window
         }
         catch { return false; }
     }
+
     /// <summary>从注册表读出已安装的旧版本（路径 + 版本号）。</summary>
     private static bool TryGetExisting(out string path, out string version)
     {
@@ -158,6 +342,7 @@ public partial class SetupWindow : Window
         }
         return true;
     }
+
     /// <summary>用户改完路径离开输入框时，顺手把 SoundVault 补上，免得装到某个目录的根上。</summary>
     private void PathBox_LostFocus(object sender, RoutedEventArgs e)
     {
@@ -168,118 +353,9 @@ public partial class SetupWindow : Window
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFolderDialog { Title = "选择安装位置" };
-        if (dlg.ShowDialog() == true) PathBox.Text = Installer.ResolveInstallDir(dlg.FolderName);   // 选完就补 SoundVault（v0.43 修）
+        if (dlg.ShowDialog() == true)
+            PathBox.Text = Installer.ResolveInstallDir(dlg.FolderName);   // 选完就补 SoundVault（v0.43 修）
     }
-
-      private async void Install_Click(object sender, RoutedEventArgs e)
-      {
-          // 已经装完：这次点的是「完成」→ 启动音匣并关掉安装器
-          if (_installed)
-          {
-              try { Process.Start(new ProcessStartInfo(Path.Combine(_installedDir, AppExeName)) { UseShellExecute = true }); }
-              catch { }
-              Close();
-              return;
-          }
-
-          var dir = Installer.ResolveInstallDir(PathBox.Text.Trim());
-          PathBox.Text = dir;
-          if (dir.Length == 0) return;
-          SetupLog.Info("安装界面", $"点击安装 目标={dir}");
-
-          InstallBtn.IsEnabled = false;
-          CancelBtn.IsEnabled = false;
-          StartMenuBox.IsEnabled = false;
-          DesktopBox.IsEnabled = false;
-
-          // 1) 有正在运行的实例？问一句，关掉才继续
-          if (!EnsureAppClosed())
-          {
-              LogText.Text = "已取消：请先关闭正在运行的音匣。";
-              ResetButtons();
-              return;
-          }
-
-          // 2) 旧版本装在别的位置？提示先卸载旧版本
-          if (TryGetExisting(out var oldPath, out var oldVersion) && !SameDir(oldPath, dir))
-          {
-              if (!RemoveOldInstall(oldPath, oldVersion, dir))
-              {
-                  LogText.Text = "已取消：旧版本未卸载。";
-                  ResetButtons();
-                  return;
-              }
-          }
-
-          // 3) 目标目录不可写（比如 Program Files）→ 提权重启自己静默安装
-          if (!Installer.CanWriteTo(dir))
-          {
-              try
-              {
-                  var exe = Environment.ProcessPath ?? "";
-                  var psi = new ProcessStartInfo(exe, $"--elevated \"{dir}\"")
-                  {
-                      UseShellExecute = true,
-                      Verb = "runas"
-                  };
-                  SetupLog.Info("提权", "目标不可写，重启自身请求管理员 → " + dir);
-                  Process.Start(psi);
-                  Application.Current.Shutdown();
-                  return;
-              }
-              catch (Exception ex)
-              {
-                  SetupLog.Error("提权", "提权被拒绝（用户取消 UAC？）", ex);
-                  LogText.Text = "需要管理员权限才能装到这里，但提权被拒绝：" + ex.Message;
-                  ResetButtons();
-                  return;
-              }
-          }
-
-          // 4) 安装（必须在 UI 线程：建快捷方式用 WScript.Shell，COM 需要 STA）
-          double trackWidth = ProgressTrack.ActualWidth > 4 ? ProgressTrack.ActualWidth - 2 : 300;
-          void Report(double done, string text)
-          {
-              ProgressFill.Width = Math.Clamp(done, 0, 1) * trackWidth;
-              LogText.Text = text;
-              Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-              Thread.Sleep(150);
-          }
-
-          try
-          {
-              Installer.Install(dir,
-                  createStartMenu: StartMenuBox.IsChecked == true,
-                  createDesktop: DesktopBox.IsChecked == true,
-                  progress: (d, t) => Report(d, t));
-
-              SetupLog.Info("安装界面", "安装完成 ✔ 目标=" + dir);
-              ProgressFill.Width = trackWidth;
-              LogText.Text = "安装完成 ✔  点击「完成」启动音匣";
-              _installed = true;
-              _installedDir = dir;
-              InstallBtn.Content = "完成";
-              InstallBtn.IsEnabled = true;
-              CancelBtn.Content = "关闭";
-              CancelBtn.IsEnabled = true;
-          }
-          catch (Exception ex)
-          {
-              SetupLog.Error("安装界面", "安装失败", ex);
-              LogText.Text = "安装失败：" + ex.Message;
-              ResetButtons();
-          }
-      }
-
-      private void ResetButtons()
-      {
-          InstallBtn.IsEnabled = true;
-          CancelBtn.IsEnabled = true;
-          StartMenuBox.IsEnabled = true;
-          DesktopBox.IsEnabled = true;
-      }
-
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 }
 
 /// <summary>安装/卸载的实际动作。</summary>
@@ -512,3 +588,4 @@ internal static class Uninstaller
         try { if (File.Exists(path)) File.Delete(path); } catch { }
     }
 }
+
