@@ -213,32 +213,6 @@
                 </CheckBox.Template>
             </CheckBox>
 
-            <!-- 省电档 -->
-            <CheckBox x:Name="PowerSaverBox" Content="省电模式（界面刷新限制 60fps，笔记本更省电）"
-                      Margin="0,16,0,0" FontSize="11" Focusable="False"
-                      Foreground="{DynamicResource TextSecondary}">
-                <CheckBox.Template>
-                    <ControlTemplate TargetType="CheckBox">
-                        <StackPanel Orientation="Horizontal" Background="Transparent">
-                            <Border x:Name="box" Width="16" Height="16" CornerRadius="4" Margin="0,0,8,0"
-                                    Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource PanelBorder}"
-                                    BorderThickness="1">
-                                <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="9"
-                                           Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" Visibility="Collapsed"/>
-                            </Border>
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="box" Property="Background" Value="{DynamicResource Accent}"/>
-                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
-                                <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </CheckBox.Template>
-            </CheckBox>
 
             <!-- 预览 -->
             <TextBlock Text="预览" FontSize="10.5" Margin="0,16,0,7" Foreground="{DynamicResource TextSecondary}"/>

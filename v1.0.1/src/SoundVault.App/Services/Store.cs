@@ -30,8 +30,10 @@ public sealed class Store
     public string? DeviceId { get; set; }
     /// <summary>主色（#RRGGBB）；空 = 用主题默认色。</summary>
     public string? Accent { get; set; }
-    /// <summary>省电档：界面刷新限制 60fps（播放头不再跟满帧）。</summary>
-    public bool PowerSaver { get; set; }
+
+    /// <summary>主色历史（最近用过的，最新在前）与手动收藏的颜色，外观页里点一下就能换回来。</summary>
+    public List<string> AccentHistory { get; set; } = new();
+    public List<string> AccentFavorites { get; set; } = new();
     /// <summary>面板玻璃强度 0–1（0.5 = 设计原值）。</summary>
     public double Glass { get; set; } = 0.5;
     /// <summary>手动集合。</summary>

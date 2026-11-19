@@ -1263,7 +1263,7 @@ public partial class MainWindow : Window
 
         // 1ms 门限：等价于跟着显示器满帧渲染，仅挡掉同一帧的重复回调
         double now = _clock.Elapsed.TotalMilliseconds;
-        if (now - _lastFrameMs < (_store.PowerSaver ? 15.0 : 1.0)) return;   // 省电档限 60fps
+        if (now - _lastFrameMs < 1.0) return;
         _lastFrameMs = now;
 
         double dur = a.DurationMs > 0 ? a.DurationMs : _audio.LengthMs;
@@ -1907,7 +1907,7 @@ public partial class MainWindow : Window
         {
             await Task.Delay(600);
             File.AppendAllText(log, "opening dialog\n");
-            var picked = ThemeDialog.Pick(this, AccentTheme.Base, _store.PowerSaver, _store.Glass, _store.Radius, _store.Mica);
+            var picked = ThemeDialog.Pick(this, AccentTheme.Base, _store.Glass, _store.Radius, _store.Mica);
             File.AppendAllText(log, "dialog returned: " + (picked is null ? "<null>" : AccentTheme.ToHex(picked.Result)) + "\n");
         }
         catch (Exception ex)
@@ -1989,10 +1989,8 @@ private void SettingsBtn_Click(object sender, RoutedEventArgs e, int page = 0)
         // 置顶
         _store.Topmost = dlg.Topmost2;
         Topmost = _store.Topmost;
-        SyncSettingsButton();
+        SyncPinButton();
 
-        // 省电
-        _store.PowerSaver = dlg.PowerSaver;
 
         // 导出模板
         _store.ExportTemplate = dlg.Template;
@@ -2003,6 +2001,8 @@ private void SettingsBtn_Click(object sender, RoutedEventArgs e, int page = 0)
         if (accent is not null)
         {
             _store.Accent = AccentTheme.ToHex(accent.Value);
+            _store.AccentHistory = dlg.RecentAccents.ToList();
+            _store.AccentFavorites = dlg.FavoriteAccents.ToList();
             AccentTheme.Apply(accent.Value);
         }
         _store.Glass = dlg.GlassValue;
@@ -2034,8 +2034,8 @@ private void SettingsBtn_Click(object sender, RoutedEventArgs e, int page = 0)
             ? "窗口置顶：开（点一下取消）"
             : "窗口置顶：关（点一下让音匣盖在别的软件上面）";
     }
-    private void SyncSettingsButton() => SettingsBtn.Foreground =
-        (Brush)FindResource(Topmost ? "Accent" : "TextSecondary");
+    // 设置图标不跟置顶状态走（以前错用了 Topmost，导致置顶时亮的是齿轮而不是图钉）
+    private void SyncSettingsButton() => SettingsBtn.Foreground = (Brush)FindResource("TextSecondary");
 
     /// <summary>重建索引：清掉这个库的索引行，再完整扫一遍。</summary>
     private void RebuildIndex()

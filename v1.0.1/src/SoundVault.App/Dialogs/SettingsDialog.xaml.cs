@@ -9,11 +9,10 @@ using SoundVault.App.Services;
 
 namespace SoundVault.App.Dialogs;
 
-/// <summary>设置面板：外观入口、窗口置顶、省电、导出模板、数据目录、重建索引。</summary>
+/// <summary>设置面板：外观、窗口置顶、导出模板、数据目录、重建索引。</summary>
 public partial class SettingsDialog : Window
 {
     public bool Topmost2 => TopmostBox.IsChecked == true;
-    public bool PowerSaver => PowerSaverBox.IsChecked == true;
     public string Template => string.IsNullOrWhiteSpace(TemplateBox.Text) ? ExportNames.DefaultTemplate : TemplateBox.Text.Trim();
 
     /// <summary>清洗规则（去掉空行）。</summary>
@@ -38,6 +37,11 @@ public partial class SettingsDialog : Window
     private double _startRadius;
     private bool _suppressAccentSync;
 
+    private readonly List<string> _recent = new();
+    private readonly List<string> _favorites = new();
+    public IReadOnlyList<string> RecentAccents => _recent;
+    public IReadOnlyList<string> FavoriteAccents => _favorites;
+
     private readonly Store _store;
     private readonly Action<bool>? _onThemeChanged;
     private readonly bool _startDark;
@@ -56,7 +60,6 @@ public partial class SettingsDialog : Window
         SetDark(isDark, apply: false);
 
         TopmostBox.IsChecked = store.Topmost;
-        PowerSaverBox.IsChecked = store.PowerSaver;
         TemplateBox.Text = string.IsNullOrWhiteSpace(store.ExportTemplate) ? ExportNames.DefaultTemplate : store.ExportTemplate;
         RulesBox.Text = string.Join(Environment.NewLine, NameCleaner.Normalize(store.CleanupRules));
 
@@ -66,6 +69,10 @@ public partial class SettingsDialog : Window
         _startRadius = store.Radius > 0 ? store.Radius : SurfaceTheme.DefaultRadius;
 
         BuildPresets();
+        _recent.AddRange(store.AccentHistory ?? new List<string>());
+        _favorites.AddRange(store.AccentFavorites ?? new List<string>());
+        BuildRecent();
+        BuildFavorites();
         _suppressAccentSync = true;
         _accentHex = AccentTheme.ToHex(_startAccent);
         HexBox.Text = _accentHex;
@@ -157,6 +164,7 @@ public partial class SettingsDialog : Window
         _suppressAccentSync = false;
         Swatch.Background = new SolidColorBrush(c);
         AccentTheme.Apply(c);          // 实时预览
+        PushRecent(_accentHex);
     }
 
     private void HexBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -181,6 +189,75 @@ public partial class SettingsDialog : Window
         if (RadiusText is null) return;
         RadiusText.Text = e.NewValue.ToString("0.00") + "×";
         SurfaceTheme.Apply(GlassSlider.Value, e.NewValue);
+    }
+
+    private void PushRecent(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        _recent.RemoveAll(x => string.Equals(x, hex, StringComparison.OrdinalIgnoreCase));
+        _recent.Insert(0, hex);
+        while (_recent.Count > 8) _recent.RemoveAt(_recent.Count - 1);
+        BuildRecent();
+    }
+
+    private void BuildRecent()
+    {
+        RecentRow.Children.Clear();
+        foreach (var hex in _recent)
+        {
+            var c = AccentTheme.Parse(hex);
+            if (c is null) continue;
+            RecentRow.Children.Add(MakeSwatch(c.Value, 22, null, "最近使用：" + hex));
+        }
+        RecentEmpty.Visibility = _recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void BuildFavorites()
+    {
+        FavoriteRow.Children.Clear();
+        foreach (var hex in _favorites.ToList())
+        {
+            var c = AccentTheme.Parse(hex);
+            if (c is null) continue;
+            var h = hex;
+            FavoriteRow.Children.Add(MakeSwatch(c.Value, 22, () =>
+            {
+                _favorites.RemoveAll(x => string.Equals(x, h, StringComparison.OrdinalIgnoreCase));
+                BuildFavorites();
+            }, "收藏：" + hex + "（右键取消收藏）"));
+        }
+    }
+
+    /// <summary>做一个 22×22 的色块；rightClick 不为 null 时支持右键删除。</summary>
+    private Border MakeSwatch(Color color, double size, Action? rightClick, string tip)
+    {
+        var b = new Border
+        {
+            Width = size,
+            Height = size,
+            CornerRadius = new CornerRadius(6),
+            Margin = new Thickness(0, 0, 6, 0),
+            Background = new SolidColorBrush(color),
+            Cursor = Cursors.Hand,
+            ToolTip = tip,
+            BorderThickness = new Thickness(1),
+            BorderBrush = R("PanelBorder")
+        };
+        b.MouseLeftButtonDown += (_, e) => { e.Handled = true; SetAccent(color); };
+        if (rightClick is not null)
+            b.MouseRightButtonDown += (_, e) => { e.Handled = true; rightClick(); };
+        return b;
+    }
+
+    private void FavoriteAccent_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var hex = _accentHex;
+        if (string.IsNullOrWhiteSpace(hex)) return;
+        _favorites.RemoveAll(x => string.Equals(x, hex, StringComparison.OrdinalIgnoreCase));
+        _favorites.Insert(0, hex);
+        while (_favorites.Count > 10) _favorites.RemoveAt(_favorites.Count - 1);
+        BuildFavorites();
     }
 
     private void ResetAccent_Click(object sender, MouseButtonEventArgs e)

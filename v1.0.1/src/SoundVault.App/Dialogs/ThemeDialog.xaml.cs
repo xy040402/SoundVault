@@ -19,7 +19,6 @@ public partial class ThemeDialog : Window
     private double _startRadius = 1.0;
 
     public Color Result { get; private set; }
-    public bool PowerSaver => PowerSaverBox.IsChecked == true;
     public double Glass => GlassSlider.Value;
     public double Radius => RadiusSlider.Value;
     public bool Mica => MicaBox.IsChecked == true;
@@ -39,13 +38,12 @@ public partial class ThemeDialog : Window
     }
 
     /// <summary>打开对话框；确定时返回颜色，取消返回 null。</summary>
-    public static ThemeDialog? Pick(Window? owner, Color current, bool powerSaver, double glass, double radius, bool mica)
+    public static ThemeDialog? Pick(Window? owner, Color current, double glass, double radius, bool mica)
     {
         var dlg = new ThemeDialog { Owner = owner };
         if (owner is null || !owner.IsLoaded) dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
         dlg.SetColor(current);
-        dlg.PowerSaverBox.IsChecked = powerSaver;
         dlg.MicaBox.IsChecked = mica;
 
         dlg._syncGlass = true;
@@ -202,8 +200,7 @@ public partial class ThemeDialog : Window
 
         try
         {
-            var json = "{\n  \"accent\": \"" + AccentTheme.ToHex(_color) + "\",\n  \"powerSaver\": " +
-                       (PowerSaver ? "true" : "false") + "\n}\n";
+            var json = "{\n  \"accent\": \"" + AccentTheme.ToHex(_color) + "\"\n}\n";
             System.IO.File.WriteAllText(dlg.FileName, json, System.Text.Encoding.UTF8);
             MessageBox.Show(this, "已导出：" + dlg.FileName, "音匣", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -237,7 +234,6 @@ public partial class ThemeDialog : Window
 
             SetColor(parsed.Value);
             var p = System.Text.RegularExpressions.Regex.Match(text, "\"powerSaver\"\\s*:\\s*(true|false)");
-            if (p.Success) PowerSaverBox.IsChecked = p.Groups[1].Value == "true";
         }
         catch (Exception ex)
         {
