@@ -208,6 +208,37 @@
                         <TextBlock Margin="0,14,0,0" Style="{StaticResource PageHint}"
                                    Text="你的评分、标签、集合会保存在 %LocalAppData%\SoundVault，卸载时默认保留。"/>
                     </StackPanel>
+                    <!-- ⑤ 失败 -->
+                    <StackPanel x:Name="PageError" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="26" Height="26" CornerRadius="13" Background="#FFEF4444">
+                                <TextBlock Text="!" Foreground="White" FontSize="15" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="安装没有完成" Style="{StaticResource PageTitle}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="ErrorReason" Margin="0,14,0,0" Foreground="#FFFCA5A5" FontSize="11.5"
+                                   TextWrapping="Wrap" Text=""/>
+                        <Border Background="#FF1B2130" BorderBrush="#FF2A3040" BorderThickness="1" CornerRadius="8"
+                                Margin="0,12,0,0" Padding="10,8" Height="84">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="ErrorDetail" Foreground="#FF8A93A6" FontSize="10" TextWrapping="Wrap" Text=""/>
+                            </ScrollViewer>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button x:Name="CopyDiagBtn" Content="复制诊断信息" Height="30"
+                                    Style="{StaticResource GhostBtn}" Click="CopyDiag_Click"/>
+                            <Button x:Name="OpenLogsBtn" Content="打开日志目录" Height="30" Margin="8,0,0,0"
+                                    Style="{StaticResource GhostBtn}" Click="OpenLogs_Click"/>
+                            <TextBlock x:Name="CopiedHint" Text="已复制到剪贴板" Foreground="#FF22C55E" FontSize="10.5"
+                                       VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Collapsed"/>
+                        </StackPanel>
+
+                        <TextBlock Text="修好原因后点「重试」；想换个位置就点「上一步」。"
+                                   Style="{StaticResource PageHint}" Margin="0,12,0,0"/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- 按钮条 -->

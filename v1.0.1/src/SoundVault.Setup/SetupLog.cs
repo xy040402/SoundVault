@@ -96,6 +96,33 @@ public static class SetupLog
         catch { }
     }
 
+    /// <summary>读当前日志最后 N 行（诊断信息里贴给作者看）。</summary>
+    public static string Tail(int lines = 40)
+    {
+        try
+        {
+            if (_file is null || !File.Exists(_file)) return "（没有日志文件）";
+            using var fs = new FileStream(_file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var sr = new StreamReader(fs, new UTF8Encoding(false));
+            var all = new List<string>();
+            string? line;
+            while ((line = sr.ReadLine()) is not null) all.Add(line);
+            return string.Join(Environment.NewLine, all.Skip(Math.Max(0, all.Count - lines)));
+        }
+        catch (Exception ex) { return "（读日志失败：" + ex.Message + "）"; }
+    }
+
+    /// <summary>日志目录里最新的几个文件，诊断信息里列出来。</summary>
+    public static string[] RecentFiles(int take = 3)
+    {
+        try
+        {
+            return new DirectoryInfo(Dir).GetFiles("setup-*.log")
+                .OrderByDescending(f => f.LastWriteTimeUtc).Take(take)
+                .Select(f => f.FullName).ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+    }
     public static bool IsElevated()
     {
         try

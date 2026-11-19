@@ -20,6 +20,7 @@ public partial class SetupWindow : Window
 
     private int _step;                    // 0 欢迎 / 1 位置 / 2 安装中 / 3 完成
     private string _installDir = "";
+    private bool _payloadMissing;
 
     public SetupWindow()
     {
@@ -30,10 +31,14 @@ public partial class SetupWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             @"Programs\SoundVault");
 
-        if (!Installer.HasPayload)
-            Notice("安装包里没有找到主程序（打包时 _local\\dist\\音匣.exe 不存在），这个安装包是坏的。");
-
         SetStep(0);
+
+        if (!Installer.HasPayload)
+        {
+            _payloadMissing = true;
+            SetStep(1);
+            Notice(@"这个安装包是坏的：里面没有主程序（打包时 _local\dist\音匣.exe 不存在）。请重新下载。");
+        }
     }
 
     /// <summary>提权重启后：预填安装位置；autoStart=true 就直接开始装。</summary>
@@ -61,17 +66,19 @@ public partial class SetupWindow : Window
         PagePath.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
         PageInstall.Visibility = s == 2 ? Visibility.Visible : Visibility.Collapsed;
         PageFinish.Visibility = s == 3 ? Visibility.Visible : Visibility.Collapsed;
+        PageError.Visibility = s == 4 ? Visibility.Visible : Visibility.Collapsed;
 
-        BackBtn.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
+        BackBtn.Visibility = (s == 1 || s == 4) ? Visibility.Visible : Visibility.Collapsed;
 
         NextBtn.Content = s switch
         {
             0 => "下一步",
             1 => "安装",
             3 => "完成",
+            4 => "重试",
             _ => "请稍候…"
         };
-        NextBtn.IsEnabled = s != 2;
+        NextBtn.IsEnabled = s != 2 && !(_payloadMissing && s == 1);
 
         CancelBtn.Content = s == 3 ? "关闭" : "取消";
         CancelBtn.IsEnabled = s != 2;
@@ -110,6 +117,9 @@ public partial class SetupWindow : Window
                 break;
             case 3:
                 FinishAndClose();
+                break;
+            case 4:
+                _ = RunInstallAsync();       // 重试
                 break;
         }
     }
@@ -206,6 +216,10 @@ public partial class SetupWindow : Window
 
         try
         {
+            // 验收钩子：SV_SETUP_FAIL=1 时模拟一次"磁盘满"，用来看失败页与诊断信息
+            if (Environment.GetEnvironmentVariable("SV_SETUP_FAIL") == "1")
+                throw new IOException("测试：模拟写入失败（磁盘已满）", unchecked((int)0x80070027));
+
             Installer.Install(dir,
                 createStartMenu: StartMenuBox.IsChecked == true,
                 createDesktop: DesktopBox.IsChecked == true,
@@ -220,8 +234,127 @@ public partial class SetupWindow : Window
         catch (Exception ex)
         {
             SetupLog.Error("安装界面", "安装失败", ex);
-            SetStep(1);
-            Notice("安装失败：" + ex.Message);
+            ShowFailure(ex, dir);
+        }
+    }
+
+    // ── 失败处理（P7）────────────────────────────────────
+
+    private Exception? _lastError;
+    private string _lastDir = "";
+
+    /// <summary>把异常翻译成人话：先看是不是某一步失败，再按错误码/异常类型给建议。</summary>
+    private static string Friendly(Exception ex)
+    {
+        var step = (ex as Installer.InstallStepException)?.Step;
+        var inner = ex;
+        while (inner.InnerException is not null) inner = inner.InnerException;
+        int code = inner.HResult;
+
+        string why = inner switch
+        {
+            UnauthorizedAccessException => "没有写入权限。这个目录受系统保护，或者被杀毒软件拦住了。",
+            PathTooLongException => "安装路径太长，换个短一点的目录试试。",
+            DirectoryNotFoundException => "目标目录不存在而且建不出来，换一个位置试试。",
+            IOException io when code == unchecked((int)0x80070027) || code == unchecked((int)0x80070070)
+                => "磁盘空间不足。清理一下再装，安装需要约 200 MB。",
+            IOException io when code == unchecked((int)0x80070020)
+                => "文件正被别的程序占用（可能是还在运行的音匣，或杀毒软件正在扫描）。关掉它们再重试。",
+            IOException io when code == unchecked((int)0x80070005)
+                => "写入被拒绝（拒绝访问）。可能是杀毒软件拦截，或者这个目录需要管理员权限。",
+            NullReferenceException when step == "释放主程序"
+                => "安装包里没有主程序资源（包可能下载不完整）。请重新下载安装包。",
+            IOException io => "读写文件时出错：" + io.Message,
+            _ => inner.Message
+        };
+
+        return step is null ? why : $"在「{step}」这一步失败。\n{why}";
+    }
+
+    private void ShowFailure(Exception ex, string dir)
+    {
+        _lastError = ex;
+        _lastDir = dir;
+
+        ErrorReason.Text = Friendly(ex);
+        // 详情只给"类型 + 错误码 + 消息"，完整堆栈留在日志和复制出来的诊断信息里
+        var inner = ex;
+        while (inner.InnerException is not null) inner = inner.InnerException;
+        ErrorDetail.Text = $"{inner.GetType().Name}（0x{inner.HResult:X8}）：{inner.Message}";
+
+        try
+        {
+            var drive = Path.GetPathRoot(Path.GetFullPath(dir));
+            if (drive is not null)
+            {
+                var d = new DriveInfo(drive);
+                ErrorDetail.Text += $"\n\n磁盘 {drive} 可用：{d.AvailableFreeSpace / 1024 / 1024} MB";
+            }
+        }
+        catch { }
+
+        CopiedHint.Visibility = Visibility.Collapsed;
+        SetStep(4);
+    }
+
+    /// <summary>拼一段可以直接粘给作者的诊断信息。</summary>
+    private string BuildDiagnostic(string dir, Exception? ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("音匣 SoundVault 安装失败诊断");
+        sb.AppendLine("时间：" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        sb.AppendLine("安装器版本：" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "?"));
+        sb.AppendLine("系统：" + Environment.OSVersion.VersionString + " / " + (Environment.Is64BitOperatingSystem ? "64 位" : "32 位"));
+        sb.AppendLine("管理员：" + (SetupLog.IsElevated() ? "是" : "否"));
+        sb.AppendLine("目标目录：" + dir);
+
+        if (ex is not null)
+        {
+            sb.AppendLine("失败原因：" + Friendly(ex).Replace("\n", " "));
+            sb.AppendLine("异常：" + ex.GetType().FullName + " (0x" + ex.HResult.ToString("X8") + ")：" + ex.Message);
+            if (ex is Installer.InstallStepException se) sb.AppendLine("失败步骤：" + se.Step);
+            sb.AppendLine();
+            sb.AppendLine("---- 完整异常 ----");
+            sb.AppendLine(ex.ToString());
+        }
+
+        sb.AppendLine("日志目录：" + SetupLog.Dir);
+        foreach (var f in SetupLog.RecentFiles()) sb.AppendLine("  " + f);
+        sb.AppendLine();
+        sb.AppendLine("---- 最近日志 ----");
+        sb.AppendLine(SetupLog.Tail(40));
+        return sb.ToString();
+    }
+
+    private void CopyDiag_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var text = BuildDiagnostic(_lastDir, _lastError);
+            Clipboard.SetText(text);
+            SetupLog.Info("安装界面", $"已复制诊断信息 长度={text.Length}");
+            CopiedHint.Visibility = Visibility.Visible;
+
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            timer.Tick += (_, _) => { CopiedHint.Visibility = Visibility.Collapsed; timer.Stop(); };
+            timer.Start();
+        }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装界面", "复制诊断信息失败", ex);
+        }
+    }
+
+    private void OpenLogs_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(SetupLog.Dir);
+            Process.Start(new ProcessStartInfo("explorer.exe", "\"" + SetupLog.Dir + "\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装界面", "打开日志目录失败", ex);
         }
     }
 
@@ -403,76 +536,120 @@ internal static class Installer
         catch { return false; }
     }
 
+    /// <summary>安装失败时带上"卡在哪一步"，UI 才能说人话。</summary>
+    public sealed class InstallStepException : Exception
+    {
+        public string Step { get; }
+        public InstallStepException(string step, Exception inner) : base($"{step}失败：{inner.Message}", inner)
+        {
+            Step = step;
+        }
+    }
+
+    private static void Step(string name, Action action)
+    {
+        try { action(); }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装", $"步骤失败：{name}", ex);
+            throw new InstallStepException(name, ex);
+        }
+    }
+
     public static void Install(string dir, bool createStartMenu, bool createDesktop, Action<double, string> progress)
     {
         SetupLog.Info("安装", $"写入目标={dir}");
-        Directory.CreateDirectory(dir);
+
+        Step("准备安装目录", () => Directory.CreateDirectory(dir));
+
+        // 空间不够早点说，别写到一半失败
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(dir));
+            if (root is not null)
+            {
+                var drive = new DriveInfo(root);
+                long need = 200L * 1024 * 1024;
+                if (drive.AvailableFreeSpace < need)
+                    throw new IOException($"磁盘空间不足：{root} 只剩 {drive.AvailableFreeSpace / 1024 / 1024} MB，安装需要约 200 MB。");
+            }
+        }
+        catch (IOException) { throw; }
+        catch { }   // 拿不到磁盘信息就算了，不影响安装
 
         // 静默安装没有交互，直接尝试关掉正在运行的实例，避免文件被占用
-            foreach (var name in new[] { "音匣", "SoundVault.App" })
+        foreach (var name in new[] { "音匣", "SoundVault.App" })
+        {
+            try
             {
-                try
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
                 {
-                    foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
-                    {
-                        try { p.CloseMainWindow(); } catch { }
-                    }
+                    try { p.CloseMainWindow(); } catch { }
                 }
-                catch { }
             }
-            System.Threading.Thread.Sleep(600);
-            foreach (var name in new[] { "音匣", "SoundVault.App" })
+            catch { }
+        }
+        System.Threading.Thread.Sleep(600);
+        foreach (var name in new[] { "音匣", "SoundVault.App" })
+        {
+            try
             {
-                try
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
                 {
-                    foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
-                    {
-                        try { if (!p.HasExited) p.Kill(); } catch { }
-                    }
+                    try { if (!p.HasExited) p.Kill(); } catch { }
                 }
-                catch { }
             }
-            System.Threading.Thread.Sleep(300);
+            catch { }
+        }
+        System.Threading.Thread.Sleep(300);
 
-            progress(0.15, "正在释放主程序（约 76 MB）…");
+        progress(0.15, "正在释放主程序（约 76 MB）…");
         var appPath = Path.Combine(dir, AppExeName);
         SetupLog.Info("安装", "开始释放主程序 → " + appPath);
-        using (var src = Assembly.GetExecutingAssembly().GetManifestResourceStream("SoundVault.App.exe")!)
-        using (var dst = File.Create(appPath))
+
+        Step("释放主程序", () =>
         {
+            using var src = Assembly.GetExecutingAssembly().GetManifestResourceStream("SoundVault.App.exe")!;
+            using var dst = File.Create(appPath);
             src.CopyTo(dst);
-        }
+        });
 
         SetupLog.Info("安装", "主程序写入完成 大小=" + new FileInfo(appPath).Length);
         progress(0.35, "正在放置卸载程序…");
+
         var self = Environment.ProcessPath ?? "";
         var uninstaller = Path.Combine(dir, UninstallerName);
-        if (self.Length > 0 && File.Exists(self) && !string.Equals(self, uninstaller, StringComparison.OrdinalIgnoreCase))
+        Step("放置卸载程序", () =>
         {
-            File.Copy(self, uninstaller, overwrite: true);
-        }
+            if (self.Length > 0 && File.Exists(self) && !string.Equals(self, uninstaller, StringComparison.OrdinalIgnoreCase))
+                File.Copy(self, uninstaller, overwrite: true);
+        });
 
         SetupLog.Info("安装", $"卸载程序已放置 开始菜单={createStartMenu} 桌面={createDesktop}");
         progress(0.55, "正在建立快捷方式…");
-        if (createStartMenu)
+
+        Step("创建开始菜单快捷方式", () =>
         {
+            if (!createStartMenu) return;
             var startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "音匣 SoundVault");
             Directory.CreateDirectory(startMenu);
             CreateShortcut(Path.Combine(startMenu, "音匣 SoundVault.lnk"), appPath, dir);
-        }
-        if (createDesktop)
+        });
+
+        Step("创建桌面快捷方式", () =>
         {
+            if (!createDesktop) return;
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             CreateShortcut(Path.Combine(desktop, "音匣 SoundVault.lnk"), appPath, dir);
-        }
+        });
 
         SetupLog.Info("安装", "快捷方式完成，开始写注册表");
         progress(0.85, "正在登记到「应用和功能」…");
-        try
+
+        Step("写入「应用和功能」登记项", () =>
         {
             using var key = Registry.CurrentUser.CreateSubKey(UninstallKey);
             key.SetValue("DisplayName", "音匣 SoundVault");
-            // 版本号跟着程序集走，别再写死了（v0.41 修）
             var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);
             key.SetValue("DisplayVersion", $"{ver.Major}.{ver.Minor}.{ver.Build}");
             key.SetValue("Publisher", "音匣");
@@ -482,12 +659,7 @@ internal static class Installer
             key.SetValue("NoModify", 1, RegistryValueKind.DWord);
             key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
             try { key.SetValue("EstimatedSize", new FileInfo(appPath).Length / 1024, RegistryValueKind.DWord); } catch { }
-        }
-        catch (Exception ex)
-        {
-            SetupLog.Error("安装", "写注册表失败", ex);
-            throw;
-        }
+        });
 
         SetupLog.Info("安装", $"全部完成 dir={dir}");
         progress(1.0, "完成。");
