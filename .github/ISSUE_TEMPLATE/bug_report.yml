@@ -1,0 +1,79 @@
+name: 问题反馈
+description: 装了、能开、但哪里不对——闪退、卡住、解码失败、界面错位等
+title: "[问题] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        填之前先看两条，能省你一半时间：
+
+        1. **日志里通常已经有答案**：`%LocalAppData%\SoundVault\logs\`，同一天一个文件。
+        2. 更省事的方式：打开音匣 → 右上角齿轮「设置」→ **导出诊断包…**，把生成的 zip 拖进来。
+
+  - type: input
+    id: version
+    attributes:
+      label: 音匣版本
+      description: 「设置」面板最上面，或安装包文件名里的版本号
+      placeholder: 1.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      description: Win + R 输入 `winver` 能看到；写 10 / 11 + 版本号就行
+      placeholder: Windows 11 23H2 (22631)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 怎么操作的
+      description: 尽量按顺序写，越具体越好
+      placeholder: |
+        1. 把一个 2000 个文件的素材包拖进左栏
+        2. 等进度条走完
+        3. 点「武器」文件夹
+        4. 这时右边空白，没有任何卡片
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你期望的结果
+      placeholder: 应该看到武器文件夹里的 300 多个音效卡片
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际发生了什么
+      description: 有报错弹窗就把文字粘上来；界面错位的话截个图
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 诊断包
+      description: |
+        两种任选：
+        - 拖入「设置 → 导出诊断包」生成的 zip
+        - 或者把 `%LocalAppData%\SoundVault\logs\app-*.log` 里出问题那天的文件拖进来
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我看过「使用说明书」，里面没有同样的问题
+          required: false

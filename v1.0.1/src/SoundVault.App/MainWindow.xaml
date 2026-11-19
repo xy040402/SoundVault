@@ -770,6 +770,8 @@
                             <TextBlock Text="＋ 拖入文件夹新建库" FontSize="11.5" HorizontalAlignment="Center"
                                        VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
                         </Border>
+            <TextBlock DockPanel.Dock="Bottom" Text="只建索引，不复制文件" FontSize="9.5" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextTertiary}" Margin="0,0,0,2"/>
 
                         <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                       PreviewMouseWheel="Sidebar_PreviewMouseWheel">
@@ -1027,7 +1029,7 @@
                                     BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" HorizontalAlignment="Center"/>
                             <TextBlock Text="把素材包文件夹拖到左边" FontSize="18" FontWeight="SemiBold" Margin="0,26,0,10"
                                        HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
-                            <TextBlock Text="音匣会递归扫描其中的音频文件，建立波形与索引。&#x0a;不会移动、不会修改你的任何文件。"
+                            <TextBlock Text="音匣会递归扫描其中的音频文件，建立波形与索引。&#x0a;只建索引：不移动、不复制、不修改你的任何文件。"
                                        TextAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12.5"
                                        LineHeight="22"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">

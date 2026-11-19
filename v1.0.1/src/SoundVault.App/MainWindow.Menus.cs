@@ -299,7 +299,7 @@ public partial class MainWindow
         }
 
         var info = PackScanner.Scan(root);
-        MessageDialog.Show(this, "素材包识别", info.Summary);
+        MessageDialog.Show(this, "素材包识别", info.Summary + "\n\n音匣只给这些文件建索引，不会移动、不会复制原文件。");
     }
     private async System.Threading.Tasks.Task ExportAsync()
     {

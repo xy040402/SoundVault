@@ -176,6 +176,22 @@ _local/                    本地杂物：构建产物、历史 exe、备份（�
 
 ---
 
+## 反馈与支持
+
+遇到问题先看日志：`%LocalAppData%\SoundVault\logs\`（一天一个文件）。
+更省事：设置面板里的 **导出诊断包…**，生成的 zip 直接拖进 issue 就行。
+
+| 目的 | 去哪里 |
+|---|---|
+| 有东西坏了 | [问题反馈](https://github.com/xy040402/SoundVault/issues/new?template=bug_report.yml) |
+| 希望加功能 | [功能建议](https://github.com/xy040402/SoundVault/issues/new?template=feature_request.yml) |
+| 用法不清楚 | [使用说明书](v1.0.1/使用说明书.md) |
+
+不开 QQ 群 / 微信群：群里的答案搜不到，后来的人还得再问一遍；issue 能挂日志、能搜、别人也能看到。
+详细说明见 [docs/反馈指南.md](docs/反馈指南.md)。
+
+---
+
 ## 许可
 
 [MIT](LICENSE)。音频素材版权归各自作者所有，本项目不附带任何音频文件。

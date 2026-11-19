@@ -1,0 +1,51 @@
+name: 功能建议
+description: 希望音匣多做点什么，或者某个地方用起来别扭
+title: "[建议] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        音匣只做「本地音效库管理」这一件事，下面这些是**明确不做**的，提了也只会回一句不建议做：
+
+        - 云端素材库 / 账号 / 在线商店
+        - AI 生成音频、声音克隆、音效合成
+        - 多轨编辑、降噪、混音（交给 RX / DAW）
+        - 团队协作、共享数据库
+        - 插件专有容器（Kontakt `.nki`、UVI `.ufs`）
+
+  - type: textarea
+    id: scene
+    attributes:
+      label: 你实际在做什么
+      description: 说场景比说功能有用——"给游戏做打斗音效时，我需要…"
+      placeholder: 给一部短片配环境声，同一个雨声要做 3 个远近层次，每次都要手动找文件复制
+    validations:
+      required: true
+
+  - type: textarea
+    id: want
+    attributes:
+      label: 你希望它怎么帮你
+      placeholder: 能不能右键一个音效 → "复制一份并降 6 dB"，直接生成新文件
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: 现在你是怎么绕过去的
+      description: 有绕法说明需求真实存在；没有也行，空着
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 对你来说有多重要
+      options:
+        - 只是顺手提一下
+        - 有了会经常用
+        - 没有它我没法用
+    validations:
+      required: true
