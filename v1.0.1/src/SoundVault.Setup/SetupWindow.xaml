@@ -202,8 +202,10 @@
 
                         <TextBlock x:Name="FinishPathText" Margin="0,14,0,0" Style="{StaticResource PageHint}" Text=""/>
 
+                        <TextBlock x:Name="FinishShortcutText" Margin="0,10,0,0" Style="{StaticResource PageHint}" Text=""/>
+
                         <CheckBox x:Name="LaunchBox" Content="立即启动 音匣" IsChecked="True"
-                                  Foreground="#FFC8D0DE" Margin="0,16,0,0"/>
+                                  Foreground="#FFC8D0DE" Margin="0,14,0,0"/>
 
                         <TextBlock Margin="0,14,0,0" Style="{StaticResource PageHint}"
                                    Text="你的评分、标签、集合会保存在 %LocalAppData%\SoundVault，卸载时默认保留。"/>

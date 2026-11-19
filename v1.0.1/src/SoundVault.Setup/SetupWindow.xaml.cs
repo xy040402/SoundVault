@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -124,6 +125,14 @@ public partial class SetupWindow : Window
         }
     }
 
+    private static string ShortcutSummary()
+    {
+        var parts = new List<string>();
+        parts.Add(Installer.StartMenuOk ? "开始菜单 ✔" : "开始菜单 ✘ 没建成");
+        parts.Add(Installer.DesktopOk ? "桌面 ✔" : "桌面 ✘ 没建成");
+        return "快捷方式：" + string.Join("  ·  ", parts);
+    }
+
     private void FinishAndClose()
     {
         if (LaunchBox.IsChecked == true && _installDir.Length > 0)
@@ -228,6 +237,7 @@ public partial class SetupWindow : Window
             ProgressFill.Width = trackWidth;
             _installDir = dir;
             FinishPathText.Text = "音匣 已安装到：" + dir;
+            FinishShortcutText.Text = ShortcutSummary();
             SetupLog.Info("安装界面", "安装完成 ✔ " + dir);
             SetStep(3);
         }
@@ -494,6 +504,10 @@ public partial class SetupWindow : Window
 /// <summary>安装/卸载的实际动作。</summary>
 internal static class Installer
 {
+    /// <summary>这一次安装里两个快捷方式的实际结果，完成页要如实显示。</summary>
+    public static bool StartMenuOk { get; private set; }
+    public static bool DesktopOk { get; private set; }
+    public static string StartMenuPath { get; private set; } = "";
     private const string AppExeName = "音匣.exe";
     private const string UninstallerName = "卸载 音匣.exe";
     private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SoundVault";
@@ -633,14 +647,18 @@ internal static class Installer
             if (!createStartMenu) return;
             var startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "音匣 SoundVault");
             Directory.CreateDirectory(startMenu);
-            CreateShortcut(Path.Combine(startMenu, "音匣 SoundVault.lnk"), appPath, dir);
+            var lnk = Path.Combine(startMenu, "音匣 SoundVault.lnk");
+            StartMenuOk = CreateShortcut(lnk, appPath, dir);
+            StartMenuPath = lnk;
+            if (!StartMenuOk) SetupLog.Warn("安装", "开始菜单快捷方式没有建成 → " + lnk);
         });
-
         Step("创建桌面快捷方式", () =>
         {
             if (!createDesktop) return;
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            CreateShortcut(Path.Combine(desktop, "音匣 SoundVault.lnk"), appPath, dir);
+            var lnk2 = Path.Combine(desktop, "音匣 SoundVault.lnk");
+            DesktopOk = CreateShortcut(lnk2, appPath, dir);
+            if (!DesktopOk) SetupLog.Warn("安装", "桌面快捷方式没有建成 → " + lnk2);
         });
 
         SetupLog.Info("安装", "快捷方式完成，开始写注册表");
@@ -665,17 +683,92 @@ internal static class Installer
         progress(1.0, "完成。");
     }
 
-    private static void CreateShortcut(string lnkPath, string target, string workDir)
+    /// <summary>
+    /// 建 .lnk。以前只用 WScript.Shell（WSH 被系统禁用时它返回 null，于是"什么都没建、也不报错"）。
+    /// 现在先用 IShellLink，失败了再退回 WScript，最后校验文件是否真的存在。
+    /// </summary>
+    private static bool CreateShortcut(string lnkPath, string target, string workDir)
     {
-        var t = Type.GetTypeFromProgID("WScript.Shell");
-        if (t is null) return;
-        dynamic shell = Activator.CreateInstance(t)!;
-        dynamic lnk = shell.CreateShortcut(lnkPath);
-        lnk.TargetPath = target;
-        lnk.WorkingDirectory = workDir;
-        lnk.IconLocation = target;
-        lnk.Description = "音匣 SoundVault";
-        lnk.Save();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(lnkPath)!);
+
+            var link = (IShellLinkW)new ShellLinkCoClass();
+            link.SetPath(target);
+            link.SetWorkingDirectory(workDir);
+            link.SetDescription("音匣 SoundVault");
+            link.SetIconLocation(target, 0);
+            ((IPersistFile)link).Save(lnkPath, true);
+
+            if (File.Exists(lnkPath)) return true;
+            SetupLog.Warn("安装", "IShellLink 没有写出文件，改用 WScript 再试 → " + lnkPath);
+        }
+        catch (Exception ex)
+        {
+            SetupLog.Warn("安装", "IShellLink 建快捷方式失败，改用 WScript：" + ex.Message);
+        }
+
+        try
+        {
+            var t = Type.GetTypeFromProgID("WScript.Shell");
+            if (t is null)
+            {
+                SetupLog.Error("安装", "系统里没有 WScript.Shell（WSH 可能被禁用），快捷方式建不出来");
+                return false;
+            }
+            dynamic shell = Activator.CreateInstance(t)!;
+            dynamic lnk = shell.CreateShortcut(lnkPath);
+            lnk.TargetPath = target;
+            lnk.WorkingDirectory = workDir;
+            lnk.IconLocation = target;
+            lnk.Description = "音匣 SoundVault";
+            lnk.Save();
+        }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装", "WScript 建快捷方式也失败", ex);
+            return false;
+        }
+
+        return File.Exists(lnkPath);
+    }
+
+    // ── IShellLink 互操作（不依赖 WSH）─────────────────────
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    private class ShellLinkCoClass { }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("000214F9-0000-0000-C000-000000000046")]
+    private interface IShellLinkW
+    {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszFile, int cch, IntPtr pfd, uint fFlags);
+        void GetIDList(out IntPtr ppidl);
+        void SetIDList(IntPtr pidl);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszName, int cch);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszDir, int cch);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszArgs, int cch);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
+        void GetHotkey(out short pwHotkey);
+        void SetHotkey(short wHotkey);
+        void GetShowCmd(out int piShowCmd);
+        void SetShowCmd(int iShowCmd);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszIconPath, int cch, out int piIcon);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, int dwReserved);
+        void Resolve(IntPtr hwnd, uint fFlags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("0000010b-0000-0000-C000-000000000046")]
+    private interface IPersistFile
+    {
+        void GetClassID(out Guid pClassID);
+        [PreserveSig] int IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, uint dwMode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, [MarshalAs(UnmanagedType.Bool)] bool fRemember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string pszFileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string ppszFileName);
     }
 }
 
