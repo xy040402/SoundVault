@@ -288,7 +288,6 @@ public partial class MainWindow
 
         try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
     }
-    /// <summary>验收钩子：SV_PURGE_TEST=1 时对第一个库跑一遍"删库清理"，结果写 sv-purge.txt。</summary>
     /// <summary>验收钩子：SV_IMPORT_DIR=&lt;文件夹&gt; 时，启动后按"拖入文件夹"那条路导入（select:true）。</summary>
     private async Task RunImportDirTestIfRequestedAsync()
     {
@@ -298,77 +297,6 @@ public partial class MainWindow
         Log.Info("验收", "SV_IMPORT_DIR 导入 " + dir);
         await AddLibraryAsync(dir, select: true);
         Log.Info("验收", "SV_IMPORT_DIR 导入返回");
-    }
-    /// <summary>验收钩子：SV_TAG_TEST=&lt;文件或文件夹&gt; 跑一遍 YAMNet，结果写 sv-tag.txt。</summary>
-    private void RunTagTestIfRequested()
-    {
-        var arg = Environment.GetEnvironmentVariable("SV_TAG_TEST");
-        if (string.IsNullOrWhiteSpace(arg)) return;
-
-        var log = Path.Combine(Path.GetTempPath(), "sv-tag.txt");
-        var sb = new System.Text.StringBuilder();
-        try
-        {
-            sb.AppendLine("模型可用=" + AudioTagger.Available + "  状态=" + AudioTagger.Status);
-
-            var files = Directory.Exists(arg)
-                ? Directory.EnumerateFiles(arg, "*.*", SearchOption.AllDirectories)
-                    .Where(f => new[] { ".wav", ".mp3", ".flac", ".aif", ".aiff", ".ogg", ".m4a" }
-                        .Contains(Path.GetExtension(f).ToLowerInvariant()))
-                    .OrderBy(x => x).Take(16).ToArray()
-                : new[] { arg };
-
-            foreach (var f in files)
-            {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                var tags = AudioTagger.Recognize(f, topK: 5);
-                sw.Stop();
-                sb.AppendLine($"\n{Path.GetFileName(f)}  ({sw.ElapsedMilliseconds} ms)");
-                sb.AppendLine("  → " + (tags.Count == 0 ? "（没有匹配到中文标签）"
-                    : string.Join("、", tags.Select(t => $"{t.Tag} {t.Score:0.00}"))));
-            }
-        }
-        catch (Exception ex) { sb.AppendLine("TAG TEST FAILED: " + ex); }
-
-        try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
-        Log.Info("识别", "SV_TAG_TEST 完成 → " + log);
-    }
-    /// <summary>验收钩子：SV_AI_TAG_TEST=1 时，导入完成后对当前库所有音效跑一遍 AI 打标签，再撤销一半验证。</summary>
-    private async Task RunAiTagTestIfRequestedAsync()
-    {
-        if (Environment.GetEnvironmentVariable("SV_AI_TAG_TEST") != "1") return;
-
-        var log = Path.Combine(Path.GetTempPath(), "sv-ai-tag.txt");
-        var sb = new System.Text.StringBuilder();
-        try
-        {
-            Log.Info("识别", $"SV_AI_TAG_TEST 开始 音效数={_all.Count} 模型={AudioTagger.Status}");
-            sb.AppendLine($"模型={AudioTagger.Status}  文件数={_all.Count}");
-            if (_all.Count == 0) { sb.AppendLine("没有音效"); return; }
-
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            await RunAiTagAsync(_all.ToList());
-            sw.Stop();
-
-            foreach (var a in _all.OrderBy(x => x.FilePath))
-                sb.AppendLine($"  {Path.GetFileName(a.FilePath)} → {(a.Tags.Count == 0 ? "（无）" : string.Join("、", a.Tags))}");
-
-            sb.AppendLine($"用时={sw.ElapsedMilliseconds}ms  AI 记录={_aiTagUndo.Count}");
-
-            UndoAiTags();
-            foreach (var a in _all.OrderBy(x => x.FilePath))
-                sb.AppendLine($"  [撤销后] {Path.GetFileName(a.FilePath)} → {(a.Tags.Count == 0 ? "（无）" : string.Join("、", a.Tags))}");
-        }
-        catch (Exception ex)
-        {
-            sb.AppendLine("FAILED: " + ex);
-            Log.Error("识别", "SV_AI_TAG_TEST 失败", ex);
-        }
-        finally
-        {
-            try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
-            Log.Info("识别", "SV_AI_TAG_TEST 结束 → " + log);
-        }
     }
     private void RunPurgeTestIfRequested()
     {

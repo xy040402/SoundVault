@@ -17,15 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- P4：本地音频识别（YAMNet）。模型内嵌进 exe，保证离线可用 -->
-    <EmbeddedResource Include="Assets\models\yamnet.onnx" />
-    <EmbeddedResource Include="Assets\models\yamnet_class_map.csv" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
     <PackageReference Include="TinyPinyin.Net" Version="1.0.2" />
   </ItemGroup>
 
