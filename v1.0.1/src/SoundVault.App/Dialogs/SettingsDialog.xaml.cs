@@ -26,8 +26,17 @@ public partial class SettingsDialog : Window
     /// <summary>用户点了「重建索引」。</summary>
     public bool RebuildRequested { get; private set; }
 
-    /// <summary>用户点了「主色 / 外观」。</summary>
-    public bool AppearanceRequested { get; private set; }
+    /// <summary>外观：主色（HEX）、面板强度、圆角、云母。取消时保持原值。</summary>
+    public string AccentHex => _accentHex;
+    private string _accentHex = "";
+    public double GlassValue => GlassSlider.Value;
+    public double RadiusValue => RadiusSlider.Value;
+    public bool MicaEnabled => MicaBox.IsChecked == true;
+
+    private Color _startAccent;
+    private double _startGlass;
+    private double _startRadius;
+    private bool _suppressAccentSync;
 
     private readonly Store _store;
     private readonly Action<bool>? _onThemeChanged;
@@ -51,6 +60,24 @@ public partial class SettingsDialog : Window
         TemplateBox.Text = string.IsNullOrWhiteSpace(store.ExportTemplate) ? ExportNames.DefaultTemplate : store.ExportTemplate;
         RulesBox.Text = string.Join(Environment.NewLine, NameCleaner.Normalize(store.CleanupRules));
 
+        // 外观：预设色块 + 当前值
+        _startAccent = AccentTheme.Parse(store.Accent) ?? AccentTheme.Base;
+        _startGlass = store.Glass > 0 ? store.Glass : SurfaceTheme.Default;
+        _startRadius = store.Radius > 0 ? store.Radius : SurfaceTheme.DefaultRadius;
+
+        BuildPresets();
+        _suppressAccentSync = true;
+        _accentHex = AccentTheme.ToHex(_startAccent);
+        HexBox.Text = _accentHex;
+        _suppressAccentSync = false;
+        Swatch.Background = new SolidColorBrush(_startAccent);
+
+        GlassSlider.Value = _startGlass;
+        RadiusSlider.Value = _startRadius;
+        GlassText.Text = ((int)Math.Round(_startGlass * 100)) + "%";
+        RadiusText.Text = _startRadius.ToString("0.00") + "×";
+        MicaBox.IsChecked = store.Mica;
+
         PathText.Text = "配置：store.json（库/评分/标签归属/外观）\n索引：index.db（波形峰值与元信息，删了会自动重建）\n\n" + AppPaths.DataDir;
         PortableText.Text = AppPaths.ModeText;
         AssocText.Text = FileAssociation.IsRegistered ? "移除右键「添加到音匣」" : "注册右键「添加到音匣」";
@@ -59,7 +86,6 @@ public partial class SettingsDialog : Window
         var v = Assembly.GetExecutingAssembly().GetName().Version;
         VersionText.Text = $"音匣 SoundVault · {v?.ToString(3) ?? "0.17"}";
         AboutVersion.Text = "版本 " + (v?.ToString(3) ?? "?") + "　·　数据目录：" + AppPaths.DataDir;
-        AppearanceSummary.Text = AppearanceText();
         SelectNav(0);
 
         PreviewKeyDown += (_, e) =>
@@ -68,9 +94,10 @@ public partial class SettingsDialog : Window
         };
     }
 
-    public static SettingsDialog? Open(Window? owner, Store store, bool isDark, Action<bool>? onThemeChanged)
+    public static SettingsDialog? Open(Window? owner, Store store, bool isDark, Action<bool>? onThemeChanged, int page = 0)
     {
         var dlg = new SettingsDialog(store, isDark, onThemeChanged) { Owner = owner };
+        dlg.SelectNav(page);
         if (owner is null || !owner.IsLoaded) dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         bool ok = dlg.ShowDialog() == true;
         // 「看一遍新手引导」是按"取消"关窗的，但要把对话框带回去，否则主窗口读不到请求
@@ -95,21 +122,78 @@ public partial class SettingsDialog : Window
         // 主题一换，导航那几处颜色是代码里取的画刷，必须重新取一遍（否则浅色下字还是浅色）
         if (_navIndex >= 0) SelectNav(_navIndex);
     }
-    /// <summary>外观页顶部那行"当前长什么样"。</summary>
-    private string AppearanceText()
+    // ── 外观（内嵌，不再单开窗口）────────────────────────
+    private void BuildPresets()
     {
-        var parts = new List<string>();
-        parts.Add(_isDark ? "主题：深色" : "主题：浅色");
-
-        var accent = _store.Accent;
-        if (!string.IsNullOrWhiteSpace(accent)) parts.Add("主色：" + accent);
-        parts.Add("圆角：" + (_store.Radius >= 1.0 ? "标准" : _store.Radius <= 0.6 ? "小" : "大"));
-        parts.Add("云母：" + (_store.Mica ? "开" : "关"));
-        parts.Add("面板强度：" + ((int)Math.Round(_store.Glass * 100)) + "%");
-
-        return string.Join("　·　", parts);
+        PresetRow.Children.Clear();
+        foreach (var (name, color) in AccentTheme.Presets)
+        {
+            var b = new Border
+            {
+                Width = 24,
+                Height = 24,
+                CornerRadius = new CornerRadius(6),
+                Margin = new Thickness(0, 0, 8, 0),
+                Background = new SolidColorBrush(color),
+                Cursor = Cursors.Hand,
+                ToolTip = name,
+                BorderThickness = new Thickness(1),
+                BorderBrush = R("PanelBorder")
+            };
+            b.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                SetAccent(color);
+            };
+            PresetRow.Children.Add(b);
+        }
     }
 
+    private void SetAccent(Color c)
+    {
+        _suppressAccentSync = true;
+        _accentHex = AccentTheme.ToHex(c);
+        HexBox.Text = _accentHex;
+        _suppressAccentSync = false;
+        Swatch.Background = new SolidColorBrush(c);
+        AccentTheme.Apply(c);          // 实时预览
+    }
+
+    private void HexBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressAccentSync) return;
+        var c = AccentTheme.Parse(HexBox.Text);
+        if (c is null) return;
+        _accentHex = AccentTheme.ToHex(c.Value);
+        Swatch.Background = new SolidColorBrush(c.Value);
+        AccentTheme.Apply(c.Value);
+    }
+
+    private void Glass_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (GlassText is null) return;
+        GlassText.Text = ((int)Math.Round(e.NewValue * 100)) + "%";
+        SurfaceTheme.Apply(e.NewValue, RadiusSlider.Value);
+    }
+
+    private void Radius_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (RadiusText is null) return;
+        RadiusText.Text = e.NewValue.ToString("0.00") + "×";
+        SurfaceTheme.Apply(GlassSlider.Value, e.NewValue);
+    }
+
+    private void ResetAccent_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        SetAccent(AccentTheme.Base is var _ ? AccentTheme.Presets[0].Color : AccentTheme.Base);
+    }
+
+    private void RevertAppearance()
+    {
+        AccentTheme.Apply(_startAccent);
+        SurfaceTheme.Apply(_startGlass, _startRadius);
+    }
     private void Feedback_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
@@ -186,13 +270,6 @@ public partial class SettingsDialog : Window
         PageExport.Visibility = i == 2 ? Visibility.Visible : Visibility.Collapsed;
         PageData.Visibility = i == 3 ? Visibility.Visible : Visibility.Collapsed;
         PageAbout.Visibility = i == 4 ? Visibility.Visible : Visibility.Collapsed;
-    }
-    private void Appearance_Click(object sender, MouseButtonEventArgs e)
-    {
-        e.Handled = true;
-        AppearanceRequested = true;
-        DialogResult = true;
-        Close();
     }
 
     private void OpenData_Click(object sender, MouseButtonEventArgs e)
@@ -333,6 +410,7 @@ public partial class SettingsDialog : Window
     private void Cancel_Click(object sender, MouseButtonEventArgs e)
     {
         if (_isDark != _startDark) _onThemeChanged?.Invoke(_startDark);   // 取消：主题还原
+        RevertAppearance();                                               // 取消：主色/面板强度/圆角还原
         DialogResult = false;
         Close();
     }

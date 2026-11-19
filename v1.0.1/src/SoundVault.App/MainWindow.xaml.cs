@@ -1970,13 +1970,15 @@ public partial class MainWindow : Window
     /// <summary>按清单真的改文件名，并同步索引与用户数据。返回成功数与错误。</summary>
 
     /// <summary>设置面板（#48）：外观入口、置顶、省电、导出模板、数据目录、重建索引。</summary>
-    private void SettingsBtn_Click(object sender, RoutedEventArgs e)
+private void SettingsBtn_Click(object sender, RoutedEventArgs e) => SettingsBtn_Click(sender, e, page: 0);
+
+private void SettingsBtn_Click(object sender, RoutedEventArgs e, int page = 0)
     {
         var dlg = SettingsDialog.Open(this, _store, _isDark, dark =>
         {
             _isDark = dark;
             ApplyTheme(dark);       // 对话框里点就立刻换，等于实时预览
-        });
+}, page);
         if (dlg is null) return;
 
         // 只是点了「看一遍新手引导」：不写任何设置，直接重播
@@ -1996,11 +1998,20 @@ public partial class MainWindow : Window
         _store.ExportTemplate = dlg.Template;
         _store.Save();
 
-        if (dlg.AppearanceRequested)
+        // 外观（设置面板里内嵌改了，这里落到 store 并重画）
+        var accent = AccentTheme.Parse(dlg.AccentHex);
+        if (accent is not null)
         {
-            AccentBtn_Click(sender, e);
-            return;
+            _store.Accent = AccentTheme.ToHex(accent.Value);
+            AccentTheme.Apply(accent.Value);
         }
+        _store.Glass = dlg.GlassValue;
+        _store.Radius = dlg.RadiusValue;
+        _store.Mica = dlg.MicaEnabled;
+        SurfaceTheme.Apply(_store.Glass, _store.Radius);
+        ApplyMica(_store.Mica);
+        _store.Save();
+
 
         if (dlg.RebuildRequested) RebuildIndex();
     }
@@ -2062,22 +2073,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>点调色板：打开外观编辑器，实时预览，确定后写进 store。</summary>
-    private void AccentBtn_Click(object sender, RoutedEventArgs e)
-    {
-        var picked = ThemeDialog.Pick(this, AccentTheme.Base, _store.PowerSaver, _store.Glass, _store.Radius, _store.Mica);
-        if (picked is null)
-        {
-            ApplyAccentFromStore();       // 取消：回到已保存的颜色
-            return;
-        }
+    /// <summary>工具栏调色按钮：直接打开设置面板的「外观」页（不再单开窗口）。</summary>
+    private void AccentBtn_Click(object sender, RoutedEventArgs e) => SettingsBtn_Click(sender, e, page: 1);
 
-        _store.Accent = AccentTheme.ToHex(picked.Result);
-        _store.PowerSaver = picked.PowerSaver;
-        _store.Save();
-
-        AccentTheme.Apply(picked.Result);
-        ShowToast("主色已更新：" + _store.Accent + (picked.PowerSaver ? " · 省电模式开" : ""));
-    }
 
     private void ThemeBtn_Click(object sender, RoutedEventArgs e)
     {

@@ -121,6 +121,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- 细滑杆（从外观窗口搬过来的，保持手感一致） -->
+        <Style x:Key="ThinSlider" TargetType="Slider">
+            <Setter Property="IsMoveToPointEnabled" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center" Background="Transparent" Height="20">
+                            <Border Height="4" CornerRadius="2" Background="{DynamicResource PanelBg}"
+                                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"/>
+                            <Track x:Name="PART_Track">
+                                <Track.Thumb>
+                                    <Thumb Width="14" Height="14" Cursor="Hand">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Width="14" Height="14" CornerRadius="7"
+                                                        Background="{DynamicResource Accent}"
+                                                        BorderBrush="{DynamicResource WindowEdge}" BorderThickness="1"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- 细滚动条：默认那根白色柱子太扎眼 -->
         <Style TargetType="ScrollBar">
             <Setter Property="Width" Value="8"/>
@@ -301,18 +329,69 @@
                         <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Text="配色与材质" Style="{StaticResource CardTitle}"/>
-                                    <TextBlock Text="主色、面板强度、圆角、云母（Mica），都在单独的窗口里调，带实时预览。"
+                                    <TextBlock Text="主色" Style="{StaticResource CardTitle}"/>
+                                    <TextBlock Text="选一个预设，或者填一个 HEX。强调色、播放头、标签、选中态都会跟着变。"
                                                Style="{StaticResource Hint}"/>
+
+                                    <StackPanel x:Name="PresetRow" Orientation="Horizontal" Margin="0,12,0,0"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <Border Width="96" Height="30" CornerRadius="8" Background="{DynamicResource SearchBg}"
+                                                BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" Padding="10,0">
+                                            <TextBox x:Name="HexBox" Background="Transparent" BorderThickness="0" FontSize="12"
+                                                     Foreground="{DynamicResource TextPrimary}" VerticalContentAlignment="Center"
+                                                     CaretBrush="{DynamicResource Accent}" TextChanged="HexBox_TextChanged"/>
+                                        </Border>
+                                        <Border x:Name="Swatch" Width="30" Height="30" CornerRadius="8" Margin="8,0,0,0"
+                                                BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"/>
+                                        <Border Style="{StaticResource Btn}" Margin="8,0,0,0" Height="30"
+                                                MouseLeftButtonDown="ResetAccent_Click">
+                                            <TextBlock Text="恢复默认" Style="{StaticResource BtnText}"/>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="面板与圆角" Style="{StaticResource CardTitle}"/>
+
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="64"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="面板强度" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextSecondary}"/>
+                                        <Slider x:Name="GlassSlider" Grid.Column="1" Style="{StaticResource ThinSlider}"
+                                                Minimum="0" Maximum="1" SmallChange="0.02" LargeChange="0.1"
+                                                VerticalAlignment="Center" ValueChanged="Glass_Changed"/>
+                                        <TextBlock x:Name="GlassText" Grid.Column="2" FontSize="11" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" Foreground="{DynamicResource TextTertiary}"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="64"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="圆角" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextSecondary}"/>
+                                        <Slider x:Name="RadiusSlider" Grid.Column="1" Style="{StaticResource ThinSlider}"
+                                                Minimum="0.5" Maximum="1.6" SmallChange="0.05" LargeChange="0.2"
+                                                VerticalAlignment="Center" ValueChanged="Radius_Changed"/>
+                                        <TextBlock x:Name="RadiusText" Grid.Column="2" FontSize="11" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" Foreground="{DynamicResource TextTertiary}"/>
+                                    </Grid>
+
+                                    <TextBlock Text="往左更透（能看见背景光），往右更实（字更清楚）。" Style="{StaticResource Hint}"/>
+
                                     <Border Height="1" Background="{DynamicResource Divider}" Margin="0,14,0,0"/>
-                                    <TextBlock x:Name="AppearanceSummary" FontSize="10.5" Margin="0,12,0,0"
-                                               TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}" Text=""/>
-                                    <Border Style="{StaticResource Btn}" Height="34" HorizontalAlignment="Left" Margin="0,14,0,0"
-                                            Background="{DynamicResource Accent}" BorderBrush="Transparent"
-                                            MouseLeftButtonDown="Appearance_Click">
-                                        <TextBlock Text="打开外观设置…" Style="{StaticResource BtnText}"
-                                                   Foreground="{DynamicResource OnAccent}" FontWeight="SemiBold"/>
-                                    </Border>
+
+                                    <CheckBox x:Name="MicaBox" Content="Windows 11 云母底板（窗口透出桌面模糊；Win10 上无效）"
+                                              Style="{StaticResource Check}"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
