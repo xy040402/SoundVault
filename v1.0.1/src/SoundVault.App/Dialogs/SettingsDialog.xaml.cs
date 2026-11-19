@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Controls;
 using System.Windows.Media;
 using SoundVault.App.Services;
 
@@ -28,6 +29,7 @@ public partial class SettingsDialog : Window
     /// <summary>用户点了「主色 / 外观」。</summary>
     public bool AppearanceRequested { get; private set; }
 
+    private readonly Store _store;
     private readonly Action<bool>? _onThemeChanged;
     private readonly bool _startDark;
     private bool _isDark;
@@ -39,6 +41,7 @@ public partial class SettingsDialog : Window
     {
         InitializeComponent();
 
+        _store = store;
         _onThemeChanged = onThemeChanged;
         _startDark = isDark;
         SetDark(isDark, apply: false);
@@ -55,6 +58,9 @@ public partial class SettingsDialog : Window
 
         var v = Assembly.GetExecutingAssembly().GetName().Version;
         VersionText.Text = $"音匣 SoundVault · {v?.ToString(3) ?? "0.17"}";
+        AboutVersion.Text = "版本 " + (v?.ToString(3) ?? "?") + "　·　数据目录：" + AppPaths.DataDir;
+        AppearanceSummary.Text = AppearanceText();
+        NavList.SelectedIndex = 0;
 
         PreviewKeyDown += (_, e) =>
         {
@@ -86,6 +92,59 @@ public partial class SettingsDialog : Window
         LightBtn.BorderBrush = R(dark ? "PanelBorder" : "Accent");
         LightBtn.Background = dark ? Brushes.Transparent : R("PanelBg");
     }
+    /// <summary>外观页顶部那行"当前长什么样"。</summary>
+    private string AppearanceText()
+    {
+        var parts = new List<string>();
+        parts.Add(_isDark ? "主题：深色" : "主题：浅色");
+
+        var accent = _store.Accent;
+        if (!string.IsNullOrWhiteSpace(accent)) parts.Add("主色：" + accent);
+        parts.Add("圆角：" + (_store.Radius >= 1.0 ? "标准" : _store.Radius <= 0.6 ? "小" : "大"));
+        parts.Add("云母：" + (_store.Mica ? "开" : "关"));
+        parts.Add("面板强度：" + ((int)Math.Round(_store.Glass * 100)) + "%");
+
+        return string.Join("　·　", parts);
+    }
+
+    private void Feedback_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            Process.Start(new ProcessStartInfo("https://github.com/xy040402/SoundVault/issues/new/choose")
+            { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    private void OpenLogs2_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            Directory.CreateDirectory(Log.Dir);
+            Process.Start(new ProcessStartInfo(Log.Dir) { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    // ── 左侧导航 ─────────────────────────────────────────
+    private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (NavList.SelectedIndex < 0) return;
+        ShowPage(NavList.SelectedIndex);
+    }
+
+    private void ShowPage(int i)
+    {
+        PageGeneral.Visibility = i == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PageAppearance.Visibility = i == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PageExport.Visibility = i == 2 ? Visibility.Visible : Visibility.Collapsed;
+        PageData.Visibility = i == 3 ? Visibility.Visible : Visibility.Collapsed;
+        PageAbout.Visibility = i == 4 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void Appearance_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
