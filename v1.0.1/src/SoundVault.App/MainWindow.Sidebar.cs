@@ -62,6 +62,10 @@ public partial class MainWindow
         }
         return lib;
     }
+    /// <summary>
+    /// 导入一个库。顺序改成「先扫描、扫完再出现」：
+    /// 以前是先插进左栏、立刻切视图，然后才扫描 —— 用户看到的是"空库 + 忽然跳出进度条"。
+    /// </summary>
     private async Task AddLibraryAsync(string root, bool select = true)
     {
         Services.Log.Info("导入", $"开始添加库 root={root}");
@@ -74,30 +78,67 @@ public partial class MainWindow
             $"封面={(pack.CoverPath.Length > 0 ? System.IO.Path.GetFileName(pack.CoverPath) : "无")} " +
             $"授权={(pack.LicenseFiles.Count > 0 ? string.Join(",", pack.LicenseFiles.Select(System.IO.Path.GetFileName)) : "无")}");
 
+        // ① 先扫描：这段时间左栏里**不会**出现这个库，只有顶部进度条
+        bool cancelled = await ScanRootAsync(root);
+        if (cancelled)
+        {
+            Services.Log.Info("导入", "扫描被取消，不添加这个库");
+            return;
+        }
+
+        // ② 扫描完成后再把库放出来，此时文件数、子文件夹、波形都已经是准的
         var lib = AddLibraryNode(root);
         if (lib is null) { Services.Log.Warn("导入", "新建库节点失败，已返回"); return; }
 
-        if (select) ShowLibrary(lib.RootPath);
-        else if (_side.Count > 0 && FolderList.SelectedIndex < 0) SyncSidebarSelection(lib.Root);
-        Services.Log.Info("导入", "库节点已建，开始扫描");
-
-        await ScanLibrariesAsync(new[] { lib.RootPath });
-        Services.Log.Info("导入", $"扫描返回 文件数={lib.TotalFiles}");
-
         _perDirCache.Clear();
         RefreshLibraryCounts(lib.RootPath);
-        Services.Log.Info("导入", $"刷新完成 文件数={lib.TotalFiles} 子文件夹={lib.Root?.Children.Count}");
+        Services.Log.Info("导入", $"扫描完成并已加入左栏 文件数={lib.TotalFiles} 子文件夹={lib.Root?.Children.Count}");
 
-        if (string.Equals(_viewLibRoot, lib.RootPath, StringComparison.OrdinalIgnoreCase))
-        {
-            if (select) ShowLibrary(lib.RootPath);
-            else if (_viewKind == ViewKind.Folder && _currentFolder is not null) OpenFolder(_currentFolder);
-            else ReloadCurrentView(lib.RootPath);
-        }
-        Services.Log.Info("导入", $"视图已重画 统计={ContentStat.Text}");
+        if (select) ShowLibrary(lib.RootPath);
+        else if (_side.Count > 0 && FolderList.SelectedIndex < 0) SyncSidebarSelection(lib.Root);
+
+        Services.Log.Info("导入", $"完成 统计={ContentStat.Text}");
 
         // 素材包识别放在最后：它以前挡在扫描前面，用户看到的是扫描前的空视图（v0.36 修）
         ShowPackInfo(root);
+    }
+
+    /// <summary>扫描单个库；返回 true 表示被用户取消（调用方不该继续导入）。</summary>
+    private async Task<bool> ScanRootAsync(string root)
+    {
+        if (_indexer is null) return false;
+
+        _scanRunning = true;
+        _scanCts = new CancellationTokenSource();
+        _scanPillTimer.Start();          // 0.35 秒后才出现，小库不会闪一下
+        try
+        {
+            ScanResult result;
+            try
+            {
+                var progress = new Progress<ScanProgress>(UpdateScanUi);
+                result = await _indexer.ScanAsync(root, progress, _scanCts.Token);
+            }
+            catch (Exception ex)
+            {
+                CrashLog("扫描失败：" + root + "\n" + ex);
+                return false;
+            }
+
+            LogStartup($"扫描 {Path.GetFileName(root)}：共 {result.Total} 个 / 新增 {result.Added} / 变更 {result.Changed} / 移除 {result.Removed} / {result.Elapsed.TotalMilliseconds:0} ms");
+
+            if (result.Cancelled)
+            {
+                ShowToast("已取消扫描");
+                return true;
+            }
+            return false;
+        }
+        finally
+        {
+            _scanRunning = false;
+            EndScanPill();
+        }
     }
     /// <summary>左栏四个列表互斥：选中一个就把其它三个的选中清掉，否则会出现两处高亮（v0.57）。</summary>
     private void ClearOtherSidebarLists(object? keep)
