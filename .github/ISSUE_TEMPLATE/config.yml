@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: 使用说明书
-    url: https://github.com/xy040402/SoundVault/blob/main/v1.0.1/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6.md
+    url: https://github.com/xy040402/SoundVault/blob/main/v1.0.2/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6.md
     about: 安装、导入、搜索语法、右键菜单、常见问题都在这里，先翻一遍能省很多来回
   - name: 下载最新版本
     url: https://github.com/xy040402/SoundVault/releases/latest

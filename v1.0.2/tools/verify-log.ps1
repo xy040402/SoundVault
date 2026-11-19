@@ -1,4 +1,4 @@
-﻿# 验证 v1.0.1 的日志功能（自动判通过/不通过）
+# 验证日志功能（自动判通过/不通过）
 # 用法： .\tools\verify-log.ps1
 #        .\tools\verify-log.ps1 -Keep        保留测试目录，方便自己看日志
 #
@@ -14,7 +14,7 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $exe = Join-Path $root "_local\dist\音匣.exe"
 if (-not (Test-Path $exe)) { $exe = Join-Path $root "_local\dist\SoundVault.App.exe" }
 if (-not (Test-Path $exe)) {
-    Write-Host "找不到发布版 exe。先构建： .\build.ps1 -Version 1.0.1" -ForegroundColor Yellow
+    Write-Host "找不到发布版 exe。先构建： .\build.ps1 -Version 1.0.2" -ForegroundColor Yellow
     exit 1
 }
 

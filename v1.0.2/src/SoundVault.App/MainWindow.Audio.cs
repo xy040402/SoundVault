@@ -113,7 +113,7 @@ public partial class MainWindow
         _audio.Stop(30);
         SetPlaying(null);
 
-        // 「已用」角标已在 v1.0.1 去掉（用户不需要），拖出去只保留原本的拖拽行为
+        // 「已用」角标已去掉（用户不需要），拖出去只保留原本的拖拽行为
 
         var data = new DataObject(DataFormats.FileDrop, paths);
         ShowDragGhost(paths);
@@ -145,7 +145,7 @@ public partial class MainWindow
         SetPlaying(_hoverItem);
     }
 
-    /// <summary>播放失败时把原因说出来，别静默没反应（v1.0.1）。</summary>
+    /// <summary>播放失败时把原因说出来，别静默没反应。</summary>
     private void ReportPlayFailure(AssetItem? item)
     {
         string reason = _audio.LastError ?? "无法解码这个文件";

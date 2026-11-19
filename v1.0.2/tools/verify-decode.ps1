@@ -1,4 +1,4 @@
-﻿# 验证 v1.0.1 的解码修复（AIFF / 96k / 坏文件）
+# 验证解码（AIFF / 96k / 坏文件）
 # 用法： .\tools\verify-decode.ps1
 #        .\tools\verify-decode.ps1 -Keep     保留测试目录
 #
@@ -11,7 +11,7 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $exe = Join-Path $root "_local\dist\音匣.exe"
 if (-not (Test-Path $exe)) { $exe = Join-Path $root "_local\dist\SoundVault.App.exe" }
 if (-not (Test-Path $exe)) {
-    Write-Host "找不到发布版 exe。先构建： .\build.ps1 -Version 1.0.1" -ForegroundColor Yellow
+    Write-Host "找不到发布版 exe。先构建： .\build.ps1 -Version 1.0.2" -ForegroundColor Yellow
     exit 1
 }
 

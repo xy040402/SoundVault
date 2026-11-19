@@ -1,4 +1,4 @@
-﻿# 音匣 v1.0.1 全量体检：老功能 + 新功能一起跑，核对日志内容
+# 音匣全量体检：老功能 + 新功能一起跑，核对日志内容
 # 用法： .\tools\verify-all.ps1
 #        .\tools\verify-all.ps1 -Keep      保留测试目录
 #
@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $exe = Join-Path $root "_local\dist\音匣.exe"
 if (-not (Test-Path $exe)) { $exe = Join-Path $root "_local\dist\SoundVault.App.exe" }
-if (-not (Test-Path $exe)) { Write-Host "先构建： .\build.ps1 -Version 1.0.1" -ForegroundColor Yellow; exit 1 }
+if (-not (Test-Path $exe)) { Write-Host "先构建： .\build.ps1 -Version 1.0.2" -ForegroundColor Yellow; exit 1 }
 
 $work = Join-Path $env:TEMP ("sv-all-" + (Get-Date -Format "HHmmss"))
 $app = Join-Path $work "app"

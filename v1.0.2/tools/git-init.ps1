@@ -1,4 +1,4 @@
-﻿# 初始化本地 Git 仓库并打第一个提交（不 push）
+# 初始化本地 Git 仓库并打第一个提交（不 push）
 # 用法： .\tools\git-init.ps1
 #        .\tools\git-init.ps1 -Name "SoundVault" -Email "2284673040@qq.com"
 
@@ -45,7 +45,7 @@ $count = (& $git diff --cached --name-only | Measure-Object).Count
 Write-Host ""
 Write-Host "==> 待提交文件：$count 个" -ForegroundColor Cyan
 
-& $git commit -m "音匣 SoundVault 1.0.0"
+& $git commit -m "音匣 SoundVault 1.0.2"
 
 Write-Host ""
 Write-Host "==> 完成。接下来：" -ForegroundColor Green

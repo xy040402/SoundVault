@@ -1,5 +1,5 @@
-﻿# 一键构建：主程序 + 安装包，产物在 _local\dist\
-# 用法：  .\build.ps1            默认 1.0.0
+# 一键构建：主程序 + 安装包，产物在 _local\dist\
+# 用法：  .\build.ps1            默认 1.0.2
 #         .\build.ps1 -Version 1.0.2
 param(
     [string]$Version = "1.0.2",

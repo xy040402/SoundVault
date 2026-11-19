@@ -1,10 +1,10 @@
-﻿# 用 GitHub CLI 一条命令发布 Release（tag + 附件 + 说明）
+# 用 GitHub CLI 一条命令发布 Release（tag + 附件 + 说明）
 # 前置：winget install --id GitHub.cli -e  然后  gh auth login
 # 用法： .\tools\make-release.ps1
-#        .\tools\make-release.ps1 -Version 1.0.1
+#        .\tools\make-release.ps1 -Version 1.0.2
 
 param(
-    [string]$Version = "1.0.0"
+    [string]$Version = "1.0.2"
 )
 
 $ErrorActionPreference = "Stop"
