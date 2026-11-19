@@ -217,6 +217,7 @@ public partial class MainWindow : Window
         DumpDbIfRequested();
         await ThemeDialogTestIfRequestedAsync();
 
+        PrewarmSearchCache();
         LogStartup("启动流程结束");
 
         // 视觉验收用：SV_DIALOG_TEST=1 时弹出提示框样例

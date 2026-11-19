@@ -93,6 +93,7 @@ public partial class MainWindow
         _perDirCache.Clear();
         RefreshLibraryCounts(lib.RootPath);
         BumpDataVersion();          // 新导入的库要让搜索缓存失效
+        PrewarmSearchCache();
         Services.Log.Info("导入", $"扫描完成并已加入左栏 文件数={lib.TotalFiles} 子文件夹={lib.Root?.Children.Count}");
 
         if (select) ShowLibrary(lib.RootPath);

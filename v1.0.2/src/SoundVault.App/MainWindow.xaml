@@ -259,7 +259,7 @@
         </DataTemplate>
         <!-- 音效卡片 -->
         <DataTemplate x:Key="AssetCardTpl">
-            <Border Height="156" Margin="7" HorizontalAlignment="Stretch" CornerRadius="{DynamicResource R12}" Padding="10"
+            <Border Height="156" Margin="7" HorizontalAlignment="Stretch" CacheMode="BitmapCache" CornerRadius="{DynamicResource R12}" Padding="10"
                     Opacity="{Binding CardOpacity}"
                     BorderThickness="1" Cursor="Hand"
                     MouseRightButtonDown="AssetCard_RightClick"

@@ -73,6 +73,27 @@ public partial class MainWindow
         return items;
     }
 
+    /// <summary>
+    /// 后台把整库缓存先建好：用户第一次点搜索时就不用等（10 万条约 1 秒）。
+    /// 建缓存只读数据库和文件头，不碰界面，所以可以放线程池。
+    /// </summary>
+    public void PrewarmSearchCache()
+    {
+        if (_lib is null) return;
+        var root = _lib.RootPath;
+
+        Task.Run(() =>
+        {
+            try
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var n = SearchItems().Count;
+                Log.Info("搜索", $"预热门 {Path.GetFileName(root)}：{n} 条 用时={sw.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex) { Log.Warn("搜索", "预热失败", ex); }
+        });
+    }
+
     /// <summary>输入防抖：连打五个字只过滤一次。</summary>
     private void QueueFilter()
     {
