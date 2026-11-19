@@ -274,6 +274,15 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
 
     private void Wheel(double delta)
     {
+        if (Environment.GetEnvironmentVariable("SV_SCROLL_TRACE") == "1")
+            Services.Log.Info("滚动", $"滚轮 delta={delta:0} cell={CellHeight:0} extent={_extent.Height:0} viewport={_viewport.Height:0} offset={_offset.Y:0}");
+        // 兜底：面板刚切换到新内容时 extent 可能还是 0，先逼一次测量再滚
+        if (_extent.Height <= 0)
+        {
+            InvalidateMeasure();
+            UpdateLayout();
+        }
+
         if (!SmoothScroll.Active)
         {
             SetVerticalOffset(_offset.Y + delta);
@@ -294,7 +303,9 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
         try
         {
             _offset.Y = v;
-            InvalidateArrange();
+            // 必须 InvalidateMeasure：extent 是在 Measure 里算出来的，
+            // 只 Arrange 的话 ScrollViewer 拿到的 extent 会一直是旧值（搜索页曾经是 0，滚不动）
+            InvalidateMeasure();
             ScrollOwner?.InvalidateScrollInfo();
         }
         finally { _selfScroll = false; }
