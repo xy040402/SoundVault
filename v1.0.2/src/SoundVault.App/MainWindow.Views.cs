@@ -136,35 +136,27 @@ public partial class MainWindow
         _selected.Clear();
         _anchor = null;
 
-        // P13：库里没有子文件夹时，直接把根目录的音频铺出来。
-        // 否则拖一个"平铺的素材文件夹"进来，用户看到的是「0 个文件夹 · N 个音效」+ 一片空白。
-        if (children.Count == 0)
-        {
-            List<FileRow> rootRows;
-            try { rootRows = _db?.FilesInDir(root) ?? new List<FileRow>(); }
-            catch (Exception ex) { CrashLog("读取库根目录文件失败：" + ex); rootRows = new List<FileRow>(); }
+        // 库根本身直放的音频（P2 之后库根和子文件夹可以同时有内容）
+        List<FileRow> rootRows;
+        try { rootRows = _db?.FilesInDir(root) ?? new List<FileRow>(); }
+        catch (Exception ex) { CrashLog("读取库根目录文件失败：" + ex); rootRows = new List<FileRow>(); }
 
-            SetAssets(rootRows);
-            ApplyContentLayout(false, rootRows.Count > 0);
-
-            ContentTitle.Text = lib.Name;
-            ContentStat.Text = rootRows.Count > 0 ? $"{rootRows.Count} 个音效（根目录）" : "0 个音效";
-            LibTab.Text = ShortLabel(lib.Name);
-            if (rootRows.Count == 0) ShowFirstRunEmpty(); else HideEmptyViews();
-
-            ShowCrumbs(TrailFor(null));
-            SyncSidebarSelection(lib.Root);
-            return;
-        }
-
-        ApplyContentLayout(true, false);
+        // 两段都显示：上面文件夹卡片，下面根目录音频卡片
+        SetAssets(rootRows);
+        ApplyContentLayout(showFolders: children.Count > 0, showAssets: rootRows.Count > 0);
 
         ContentTitle.Text = lib.Name;
-        ContentStat.Text = $"{children.Count} 个文件夹 · {lib.TotalFiles} 个音效";
+        ContentStat.Text = children.Count > 0
+            ? (rootRows.Count > 0
+                ? $"{children.Count} 个文件夹 · {rootRows.Count} 个音效（根目录）"
+                : $"{children.Count} 个文件夹 · {lib.TotalFiles} 个音效")
+            : (rootRows.Count > 0 ? $"{rootRows.Count} 个音效（根目录）" : "0 个音效");
         LibTab.Text = ShortLabel(lib.Name);
-        HideEmptyViews();
 
-        ShowCrumbs(TrailFor(null));      // 根目录：只有库名
+        if (children.Count == 0 && rootRows.Count == 0) ShowFirstRunEmpty();
+        else HideEmptyViews();
+
+        ShowCrumbs(TrailFor(null));
         SyncSidebarSelection(lib.Root);
     }
     private void ApplyContentLayout(bool showFolders, bool showAssets, bool showTags = false)
@@ -230,6 +222,11 @@ public partial class MainWindow
 
         bool hasFolders = folder.Children.Count > 0;
         ApplyContentLayout(hasFolders, _all.Count > 0);
+
+        // 文件夹里"既有子文件夹又有音频"时，统计要说清楚是两段
+        ContentStat.Text = hasFolders
+            ? (_all.Count > 0 ? $"{folder.Children.Count} 个文件夹 · {_all.Count} 个音效" : $"{folder.Children.Count} 个文件夹")
+            : $"{_all.Count} 个音效";
         if (!hasFolders && _all.Count == 0)
             ShowEmptyView("这个文件夹里没有音频", "把工具栏的「深度」打开，可以把子文件夹里的音效也列出来。");
         else HideEmptyViews();
