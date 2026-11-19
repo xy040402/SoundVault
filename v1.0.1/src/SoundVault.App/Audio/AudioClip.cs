@@ -61,8 +61,9 @@ public sealed class AudioClip
                 NormalizeGain = ComputeNormalizeGain(data, rate, channels)
             };
         }
-        catch
+        catch (Exception ex)
         {
+            Services.Log.Warn("播放", "解码失败 " + path, ex);
             return null;
         }
     }

@@ -29,12 +29,23 @@ public partial class App : Application
 
         bool Has(string flag) => e.Args.Any(a => a.Equals(flag, StringComparison.OrdinalIgnoreCase));
 
+        // 日志：安装/卸载全程留痕，失败时用户把日志发回来就能定位
+        string mode =
+            Has("--elevated") ? "提权安装" :
+            Has("--silent") ? "静默安装" :
+            Has("--cleanup") ? "收尾清理" :
+            Has("--elevated-uninstall") ? "提权卸载" :
+            Has("--uninstall") ? "卸载" : "安装";
+        SetupLog.Start(mode);
+
         // ① 提权重开安装：音匣安装包.exe --elevated <目录> → 带界面安装（有进度条、有完成提示）
         int elev = Array.FindIndex(e.Args, a => a.Equals("--elevated", StringComparison.OrdinalIgnoreCase));
         if (elev >= 0 && elev + 1 < e.Args.Length)
         {
+            var target = Installer.ResolveInstallDir(e.Args[elev + 1]);
+            SetupLog.Info("提权安装", $"目标={target} 管理员={SetupLog.IsElevated()}");
             var w = new SetupWindow();
-            w.PresetTarget(Installer.ResolveInstallDir(e.Args[elev + 1]), autoStart: true);
+            w.PresetTarget(target, autoStart: true);
             MainWindow = w;
             w.Show();
             return;
@@ -46,13 +57,16 @@ public partial class App : Application
         {
             try
             {
+                SetupLog.Info("静默安装", "目标=" + Installer.ResolveInstallDir(e.Args[silent + 1]));
                 Installer.Install(Installer.ResolveInstallDir(e.Args[silent + 1]),
                     createStartMenu: true, createDesktop: true, progress: (_, _) => { });
+                SetupLog.Info("静默安装", "完成");
                 File.WriteAllText(Path.Combine(Path.GetTempPath(), "sv-install.txt"),
                     "OK dir=" + e.Args[silent + 1] + Environment.NewLine);
             }
             catch (Exception ex)
             {
+                SetupLog.Error("静默安装", "失败", ex);
                 File.WriteAllText(Path.Combine(Path.GetTempPath(), "sv-install.txt"), "FAILED: " + ex + Environment.NewLine);
             }
             Shutdown();

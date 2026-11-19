@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using SoundVault.App.Audio;
+using SoundVault.App.Services;
 
 namespace SoundVault.App;
 
@@ -33,29 +34,54 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        // 崩溃日志：任何未处理异常都写到 %TEMP%\sv-crash.txt，便于现场定位
+        // ── 日志 ───────────────────────────────────────────────
+        Log.Start();
+
+        // 崩溃：先写正式日志（带堆栈），再留一份 %TEMP%\sv-crash.txt 兜底
         DispatcherUnhandledException += (_, args) =>
         {
-            try
-            {
-                File.AppendAllText(
-                    Path.Combine(Path.GetTempPath(), "sv-crash.txt"),
-                    $"[{DateTime.Now:HH:mm:ss}] {args.Exception}\n\n",
-                    Encoding.UTF8);
-            }
-            catch { }
+            Log.Error("崩溃", "界面线程未处理异常", args.Exception);
+            WriteCrashFallback("DISPATCHER", args.Exception);
+            Log.Flush();
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
+            var ex = args.ExceptionObject as Exception;
+            Log.Error("崩溃", "后台线程未处理异常（致命）", ex ?? new Exception(args.ExceptionObject?.ToString() ?? "unknown"));
+            WriteCrashFallback("APPDOMAIN", ex);
+            Log.Flush();
+        };
+
+        Log.Info("启动", $"{typeof(App).Assembly.GetName().Version} 参数=[{string.Join(' ', e.Args)}]");
+        foreach (var line in Log.SystemInfo().Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            Log.Info("环境", line.TrimEnd('\r').TrimEnd());
+
+        // 测试钩子：SV_CRASH_TEST=1 时故意抛异常，用来验证崩溃日志
+        if (Environment.GetEnvironmentVariable("SV_CRASH_TEST") == "1")
+        {
+            Log.Info("自检", "SV_CRASH_TEST=1，即将抛出测试异常");
+            throw new InvalidOperationException("日志自检：故意抛出的异常（SV_CRASH_TEST）");
+        }
+
+        // 命令行导出诊断包：--diag <zip 路径>（界面点不动时的兜底）
+        if (e.Args.Length >= 2 && e.Args[0] == "--diag")
+        {
             try
             {
-                File.AppendAllText(
-                    Path.Combine(Path.GetTempPath(), "sv-crash.txt"),
-                    $"[{DateTime.Now:HH:mm:ss}] FATAL {args.ExceptionObject}\n\n",
-                    Encoding.UTF8);
+                var path = Log.ExportDiagnostics(e.Args[1]);
+                Log.Info("诊断", "命令行导出成功 → " + path);
+                Log.Stop();
+                Shutdown(0);
             }
-            catch { }
-        };
+            catch (Exception ex)
+            {
+                Log.Error("诊断", "命令行导出失败", ex);
+                Console.Error.WriteLine(ex);
+                Log.Stop();
+                Shutdown(1);
+            }
+            return;
+        }
 
         // 离线自检：--selftest <音频文件> [输出文件]
         if (e.Args.Length >= 2 && e.Args[0] == "--selftest")
@@ -67,6 +93,8 @@ public partial class App : Application
             if (e.Args.Length >= 3)
                 File.WriteAllText(e.Args[2], result, Encoding.UTF8);
 
+            Log.Info("自检", "--selftest 完成");
+            Log.Stop();
             Shutdown(0);
             return;
         }
@@ -76,11 +104,32 @@ public partial class App : Application
         {
             var text = AudioEngine.RunPlayTest(e.Args[1], int.TryParse(e.Args[2], out var ms) ? ms : 1500);
             if (e.Args.Length >= 4) File.WriteAllText(e.Args[3], text, Encoding.UTF8);
+            Log.Info("自检", "--playtest 完成");
+            Log.Stop();
             Shutdown(0);
             return;
         }
 
         new MainWindow().Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        Log.Info("退出", $"正常退出，代码 {e.ApplicationExitCode}");
+        Log.Stop();
+        base.OnExit(e);
+    }
+
+    private static void WriteCrashFallback(string source, Exception? ex)
+    {
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(Path.GetTempPath(), "sv-crash.txt"),
+                $"[{DateTime.Now:HH:mm:ss}] {source} {ex}\n\n",
+                Encoding.UTF8);
+        }
+        catch { }
     }
 
     private static string? ArgAfter(string[] args, string name)

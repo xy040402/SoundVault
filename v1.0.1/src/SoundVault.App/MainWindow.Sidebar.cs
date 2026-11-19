@@ -64,28 +64,29 @@ public partial class MainWindow
     }
     private async Task AddLibraryAsync(string root, bool select = true)
     {
-        var log = Path.Combine(Path.GetTempPath(), "sv-import.txt");
-        void L(string m) { try { File.AppendAllText(log, $"[{DateTime.Now:HH:mm:ss.fff}] {m}\n"); } catch { } }
-        L($"enter root={root}");
+        Services.Log.Info("导入", $"开始添加库 root={root}");
 
         var pack = PackScanner.Scan(root);
         if (pack.Version.Length > 0 || pack.Name.Length > 0)
             _store.LibraryNames[Indexer.Normalize(root)] = pack.DisplayName;
-        L($"pack scanned name={pack.Name} version={pack.Version} audio={pack.AudioCount}");
+        Services.Log.Info("导入",
+            $"素材包识别 name={pack.Name} version={pack.Version} audio={pack.AudioCount} " +
+            $"封面={(pack.CoverPath.Length > 0 ? System.IO.Path.GetFileName(pack.CoverPath) : "无")} " +
+            $"授权={(pack.LicenseFiles.Count > 0 ? string.Join(",", pack.LicenseFiles.Select(System.IO.Path.GetFileName)) : "无")}");
 
         var lib = AddLibraryNode(root);
-        if (lib is null) { L("lib is null，返回"); return; }
+        if (lib is null) { Services.Log.Warn("导入", "新建库节点失败，已返回"); return; }
 
         if (select) ShowLibrary(lib.RootPath);
         else if (_side.Count > 0 && FolderList.SelectedIndex < 0) SyncSidebarSelection(lib.Root);
-        L($"树已建 显示已切 开启扫描…");
+        Services.Log.Info("导入", "库节点已建，开始扫描");
 
         await ScanLibrariesAsync(new[] { lib.RootPath });
-        L($"ScanAsync 返回 lib.TotalFiles={lib.TotalFiles}");
+        Services.Log.Info("导入", $"扫描返回 文件数={lib.TotalFiles}");
 
         _perDirCache.Clear();
         RefreshLibraryCounts(lib.RootPath);
-        L($"刷新完成 lib.TotalFiles={lib.TotalFiles} 子文件夹={lib.Root?.Children.Count}");
+        Services.Log.Info("导入", $"刷新完成 文件数={lib.TotalFiles} 子文件夹={lib.Root?.Children.Count}");
 
         if (string.Equals(_viewLibRoot, lib.RootPath, StringComparison.OrdinalIgnoreCase))
         {
@@ -93,7 +94,7 @@ public partial class MainWindow
             else if (_viewKind == ViewKind.Folder && _currentFolder is not null) OpenFolder(_currentFolder);
             else ReloadCurrentView(lib.RootPath);
         }
-        L($"视图已重画 统计={ContentStat.Text}");
+        Services.Log.Info("导入", $"视图已重画 统计={ContentStat.Text}");
 
         // 素材包识别放在最后：它以前挡在扫描前面，用户看到的是扫描前的空视图（v0.36 修）
         ShowPackInfo(root);
@@ -328,6 +329,7 @@ public partial class MainWindow
 
         MessageDialog.Show(this, "移除这个库", tooltip, "移除", () =>
         {
+            Services.Log.Info("删库", $"移除库 name={name} path={node.Path}（磁盘文件不动）");
             _store.Libraries.RemoveAll(p => p.Equals(node.Path, StringComparison.OrdinalIgnoreCase));
             _store.LibraryNames.Remove(node.Path);
             _store.Save();

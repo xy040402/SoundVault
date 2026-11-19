@@ -59,6 +59,7 @@ public partial class UninstallWindow : Window
         CancelBtn.IsEnabled = false;
         ActionBtn.IsEnabled = false;
         DeleteDataBox.IsEnabled = false;
+        SetupLog.Info("卸载界面", $"开始卸载 目录={_dir} 同时删数据={DeleteDataBox.IsChecked == true}");
 
         var deleteData = DeleteDataBox.IsChecked == true;
         if (deleteData)
@@ -136,6 +137,7 @@ public partial class UninstallWindow : Window
                 Report(0.8, "软件数据已保留。");
             }
 
+            SetupLog.Info("卸载界面", "卸载完成 ✔");
             Report(1.0, "卸载完成 ✔");
 
             // 完成态
@@ -158,6 +160,7 @@ public partial class UninstallWindow : Window
         }
         catch (Exception ex)
         {
+            SetupLog.Error("卸载界面", "卸载出错", ex);
             LogText.Text = "卸载时出错：" + ex.Message;
             _running = false;
             CancelBtn.IsEnabled = true;

@@ -185,6 +185,7 @@ public partial class SetupWindow : Window
           var dir = Installer.ResolveInstallDir(PathBox.Text.Trim());
           PathBox.Text = dir;
           if (dir.Length == 0) return;
+          SetupLog.Info("安装界面", $"点击安装 目标={dir}");
 
           InstallBtn.IsEnabled = false;
           CancelBtn.IsEnabled = false;
@@ -221,12 +222,14 @@ public partial class SetupWindow : Window
                       UseShellExecute = true,
                       Verb = "runas"
                   };
+                  SetupLog.Info("提权", "目标不可写，重启自身请求管理员 → " + dir);
                   Process.Start(psi);
                   Application.Current.Shutdown();
                   return;
               }
               catch (Exception ex)
               {
+                  SetupLog.Error("提权", "提权被拒绝（用户取消 UAC？）", ex);
                   LogText.Text = "需要管理员权限才能装到这里，但提权被拒绝：" + ex.Message;
                   ResetButtons();
                   return;
@@ -250,6 +253,7 @@ public partial class SetupWindow : Window
                   createDesktop: DesktopBox.IsChecked == true,
                   progress: (d, t) => Report(d, t));
 
+              SetupLog.Info("安装界面", "安装完成 ✔ 目标=" + dir);
               ProgressFill.Width = trackWidth;
               LogText.Text = "安装完成 ✔  点击「完成」启动音匣";
               _installed = true;
@@ -261,6 +265,7 @@ public partial class SetupWindow : Window
           }
           catch (Exception ex)
           {
+              SetupLog.Error("安装界面", "安装失败", ex);
               LogText.Text = "安装失败：" + ex.Message;
               ResetButtons();
           }
@@ -324,6 +329,7 @@ internal static class Installer
 
     public static void Install(string dir, bool createStartMenu, bool createDesktop, Action<double, string> progress)
     {
+        SetupLog.Info("安装", $"写入目标={dir}");
         Directory.CreateDirectory(dir);
 
         // 静默安装没有交互，直接尝试关掉正在运行的实例，避免文件被占用
@@ -354,12 +360,14 @@ internal static class Installer
 
             progress(0.15, "正在释放主程序（约 76 MB）…");
         var appPath = Path.Combine(dir, AppExeName);
+        SetupLog.Info("安装", "开始释放主程序 → " + appPath);
         using (var src = Assembly.GetExecutingAssembly().GetManifestResourceStream("SoundVault.App.exe")!)
         using (var dst = File.Create(appPath))
         {
             src.CopyTo(dst);
         }
 
+        SetupLog.Info("安装", "主程序写入完成 大小=" + new FileInfo(appPath).Length);
         progress(0.35, "正在放置卸载程序…");
         var self = Environment.ProcessPath ?? "";
         var uninstaller = Path.Combine(dir, UninstallerName);
@@ -368,6 +376,7 @@ internal static class Installer
             File.Copy(self, uninstaller, overwrite: true);
         }
 
+        SetupLog.Info("安装", $"卸载程序已放置 开始菜单={createStartMenu} 桌面={createDesktop}");
         progress(0.55, "正在建立快捷方式…");
         if (createStartMenu)
         {
@@ -381,9 +390,11 @@ internal static class Installer
             CreateShortcut(Path.Combine(desktop, "音匣 SoundVault.lnk"), appPath, dir);
         }
 
+        SetupLog.Info("安装", "快捷方式完成，开始写注册表");
         progress(0.85, "正在登记到「应用和功能」…");
-        using (var key = Registry.CurrentUser.CreateSubKey(UninstallKey))
+        try
         {
+            using var key = Registry.CurrentUser.CreateSubKey(UninstallKey);
             key.SetValue("DisplayName", "音匣 SoundVault");
             // 版本号跟着程序集走，别再写死了（v0.41 修）
             var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);
@@ -396,7 +407,13 @@ internal static class Installer
             key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
             try { key.SetValue("EstimatedSize", new FileInfo(appPath).Length / 1024, RegistryValueKind.DWord); } catch { }
         }
+        catch (Exception ex)
+        {
+            SetupLog.Error("安装", "写注册表失败", ex);
+            throw;
+        }
 
+        SetupLog.Info("安装", $"全部完成 dir={dir}");
         progress(1.0, "完成。");
     }
 

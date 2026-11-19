@@ -121,6 +121,49 @@ public partial class SettingsDialog : Window
         }
     }
 
+    /// <summary>打开日志目录（%LocalAppData%\SoundVault\logs）。</summary>
+    private void OpenLogs_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            System.IO.Directory.CreateDirectory(SoundVault.App.Services.Log.Dir);
+            Process.Start(new ProcessStartInfo(SoundVault.App.Services.Log.Dir) { UseShellExecute = true });
+            SoundVault.App.Services.Log.Info("设置", "用户打开日志目录");
+        }
+        catch (Exception ex)
+        {
+            SoundVault.App.Services.Log.Warn("设置", "打开日志目录失败", ex);
+            if (PortableText != null) PortableText.Text = "打开日志目录失败：" + ex.Message;
+        }
+    }
+
+    /// <summary>导出诊断包：日志 + 系统信息 + 设置，打成一个 zip。</summary>
+    private void ExportDiag_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "保存诊断包",
+            Filter = "Zip 压缩包|*.zip",
+            FileName = $"音匣诊断-{DateTime.Now:yyyyMMdd-HHmm}.zip",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            var path = SoundVault.App.Services.Log.ExportDiagnostics(dlg.FileName);
+            SoundVault.App.Services.Log.Info("设置", "用户导出诊断包 → " + path);
+            if (PortableText != null) PortableText.Text = "诊断包已保存：" + path;
+        }
+        catch (Exception ex)
+        {
+            SoundVault.App.Services.Log.Error("设置", "导出诊断包失败", ex);
+            if (PortableText != null) PortableText.Text = "导出诊断包失败：" + ex.Message;
+        }
+    }
+
     /// <summary>把 store.json / index.db 备份到用户选的文件夹（带时间戳子目录）。</summary>
     private void Backup_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
