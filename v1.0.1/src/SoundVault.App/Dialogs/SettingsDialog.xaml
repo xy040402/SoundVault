@@ -4,7 +4,7 @@
         Title="音匣 · 设置" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Width="760" Height="600" WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False" ResizeMode="NoResize"
-        FontFamily="Microsoft YaHei UI" FontSize="12"
+        FontFamily="Microsoft YaHei UI" FontSize="12" Foreground="{DynamicResource TextPrimary}"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
 
     <Window.Resources>
@@ -96,6 +96,7 @@
             <Setter Property="Margin" Value="0,2"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
@@ -108,11 +109,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#10FFFFFF"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource CardHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#18FFFFFF"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentSoft}"/>
                                 <Setter TargetName="bar" Property="Background" Value="{DynamicResource Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -152,7 +154,7 @@
     </Window.Resources>
 
     <Border Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}"
-            BorderThickness="1" CornerRadius="14" Margin="16" MouseLeftButtonDown="Root_MouseDown">
+            BorderThickness="1" CornerRadius="14" Margin="16">
         <Border.Effect>
             <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.5" Color="Black"/>
         </Border.Effect>
@@ -165,7 +167,7 @@
             </Grid.RowDefinitions>
 
             <!-- 标题 -->
-            <Grid Grid.Row="0" Margin="20,0,12,0">
+            <Grid Grid.Row="0" Margin="20,0,12,0" Background="Transparent" MouseLeftButtonDown="Root_MouseDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="设置" FontSize="14.5" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimary}"/>
@@ -189,15 +191,48 @@
 
                 <!-- 左：导航 -->
                 <Border BorderThickness="0,0,1,0" BorderBrush="{DynamicResource Divider}" Margin="0,0,0,0">
-                    <ListBox x:Name="NavList" Background="Transparent" BorderThickness="0" Margin="10,6,10,0"
-                             ItemContainerStyle="{StaticResource NavItem}"
-                             SelectionChanged="Nav_SelectionChanged" Focusable="False">
-                        <ListBoxItem Content="常规"/>
-                        <ListBoxItem Content="外观"/>
-                        <ListBoxItem Content="导出与命名"/>
-                        <ListBoxItem Content="数据与日志"/>
-                        <ListBoxItem Content="关于"/>
-                    </ListBox>
+                    <StackPanel x:Name="NavPanel" Margin="10,6,10,0">
+                        <Border x:Name="Nav0" Tag="0" Height="34" CornerRadius="8" Cursor="Hand" Background="Transparent"
+                                MouseLeftButtonDown="Nav_Click" MouseEnter="Nav_MouseEnter" MouseLeave="Nav_MouseLeave">
+                            <Grid>
+                                <Border x:Name="NavBar0" Width="3" Height="16" CornerRadius="2" HorizontalAlignment="Left"
+                                        Margin="2,0,0,0" Background="Transparent"/>
+                                <TextBlock x:Name="NavText0" Text="常规" FontSize="12" Margin="16,0,8,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="Nav1" Tag="1" Height="34" CornerRadius="8" Cursor="Hand" Background="Transparent"
+                                Margin="0,2,0,0" MouseLeftButtonDown="Nav_Click" MouseEnter="Nav_MouseEnter" MouseLeave="Nav_MouseLeave">
+                            <Grid>
+                                <Border x:Name="NavBar1" Width="3" Height="16" CornerRadius="2" HorizontalAlignment="Left"
+                                        Margin="2,0,0,0" Background="Transparent"/>
+                                <TextBlock x:Name="NavText1" Text="外观" FontSize="12" Margin="16,0,8,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="Nav2" Tag="2" Height="34" CornerRadius="8" Cursor="Hand" Background="Transparent"
+                                Margin="0,2,0,0" MouseLeftButtonDown="Nav_Click" MouseEnter="Nav_MouseEnter" MouseLeave="Nav_MouseLeave">
+                            <Grid>
+                                <Border x:Name="NavBar2" Width="3" Height="16" CornerRadius="2" HorizontalAlignment="Left"
+                                        Margin="2,0,0,0" Background="Transparent"/>
+                                <TextBlock x:Name="NavText2" Text="导出与命名" FontSize="12" Margin="16,0,8,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="Nav3" Tag="3" Height="34" CornerRadius="8" Cursor="Hand" Background="Transparent"
+                                Margin="0,2,0,0" MouseLeftButtonDown="Nav_Click" MouseEnter="Nav_MouseEnter" MouseLeave="Nav_MouseLeave">
+                            <Grid>
+                                <Border x:Name="NavBar3" Width="3" Height="16" CornerRadius="2" HorizontalAlignment="Left"
+                                        Margin="2,0,0,0" Background="Transparent"/>
+                                <TextBlock x:Name="NavText3" Text="数据与日志" FontSize="12" Margin="16,0,8,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="Nav4" Tag="4" Height="34" CornerRadius="8" Cursor="Hand" Background="Transparent"
+                                Margin="0,2,0,0" MouseLeftButtonDown="Nav_Click" MouseEnter="Nav_MouseEnter" MouseLeave="Nav_MouseLeave">
+                            <Grid>
+                                <Border x:Name="NavBar4" Width="3" Height="16" CornerRadius="2" HorizontalAlignment="Left"
+                                        Margin="2,0,0,0" Background="Transparent"/>
+                                <TextBlock x:Name="NavText4" Text="关于" FontSize="12" Margin="16,0,8,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
                 </Border>
 
                 <!-- 右：分页 -->

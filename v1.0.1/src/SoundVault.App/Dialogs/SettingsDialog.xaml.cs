@@ -60,7 +60,7 @@ public partial class SettingsDialog : Window
         VersionText.Text = $"音匣 SoundVault · {v?.ToString(3) ?? "0.17"}";
         AboutVersion.Text = "版本 " + (v?.ToString(3) ?? "?") + "　·　数据目录：" + AppPaths.DataDir;
         AppearanceSummary.Text = AppearanceText();
-        NavList.SelectedIndex = 0;
+        SelectNav(0);
 
         PreviewKeyDown += (_, e) =>
         {
@@ -91,6 +91,9 @@ public partial class SettingsDialog : Window
         DarkBtn.Background = dark ? R("PanelBg") : Brushes.Transparent;
         LightBtn.BorderBrush = R(dark ? "PanelBorder" : "Accent");
         LightBtn.Background = dark ? Brushes.Transparent : R("PanelBg");
+
+        // 主题一换，导航那几处颜色是代码里取的画刷，必须重新取一遍（否则浅色下字还是浅色）
+        if (_navIndex >= 0) SelectNav(_navIndex);
     }
     /// <summary>外观页顶部那行"当前长什么样"。</summary>
     private string AppearanceText()
@@ -130,10 +133,50 @@ public partial class SettingsDialog : Window
     }
 
     // ── 左侧导航 ─────────────────────────────────────────
-    private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    // 用 5 个 Border 而不是 ListBox：自绘模板的 ListBox 在这套样式下点击不选中（试过，不稳）
+    private void Nav_Click(object sender, MouseButtonEventArgs e)
     {
-        if (NavList.SelectedIndex < 0) return;
-        ShowPage(NavList.SelectedIndex);
+        e.Handled = true;
+        if (sender is not FrameworkElement fe) return;
+        if (!int.TryParse(fe.Tag?.ToString(), out var idx)) return;
+        SelectNav(idx);
+    }
+
+    private int _navIndex = -1;
+
+    private void Nav_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+        if (!int.TryParse(fe.Tag?.ToString(), out var idx)) return;
+        if (idx == _navIndex) return;          // 选中的那个不用再变
+        if (fe is Border b) b.Background = R("CardHover");
+    }
+
+    private void Nav_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+        if (!int.TryParse(fe.Tag?.ToString(), out var idx)) return;
+        if (idx == _navIndex) return;
+        if (fe is Border b) b.Background = Brushes.Transparent;
+    }
+
+    private void SelectNav(int idx)
+    {
+        _navIndex = idx;
+        var borders = new[] { Nav0, Nav1, Nav2, Nav3, Nav4 };
+        var bars = new[] { NavBar0, NavBar1, NavBar2, NavBar3, NavBar4 };
+        var texts = new[] { NavText0, NavText1, NavText2, NavText3, NavText4 };
+
+        for (int i = 0; i < borders.Length; i++)
+        {
+            bool on = i == idx;
+            borders[i].Background = on ? R("AccentSoft") : Brushes.Transparent;
+            bars[i].Background = on ? R("Accent") : Brushes.Transparent;
+            texts[i].Foreground = on ? R("TextPrimary") : R("TextSecondary");
+            texts[i].FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+        }
+
+        ShowPage(idx);
     }
 
     private void ShowPage(int i)
@@ -144,7 +187,6 @@ public partial class SettingsDialog : Window
         PageData.Visibility = i == 3 ? Visibility.Visible : Visibility.Collapsed;
         PageAbout.Visibility = i == 4 ? Visibility.Visible : Visibility.Collapsed;
     }
-
     private void Appearance_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
