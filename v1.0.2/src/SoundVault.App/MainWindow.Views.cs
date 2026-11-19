@@ -122,6 +122,7 @@ public partial class MainWindow
         ClearSearch();
         _lib = lib;
         _viewLibRoot = root;
+        _globalScope = false;
         _currentFolder = null;
         _viewKind = ViewKind.Library;
         ClearQuickSelection();          // 树里的"根"亮着，快捷入口就不该亮
@@ -190,6 +191,7 @@ public partial class MainWindow
         _favoritesOnly = false;
         _currentFolder = folder;
         _viewKind = ViewKind.Folder;
+        _globalScope = false;
         _viewLibRoot = LibraryOf(folder)?.RootPath ?? _lib?.RootPath ?? "";
         ClearQuickSelection();          // 进了文件夹，快捷入口的高亮要退掉
 
@@ -233,50 +235,54 @@ public partial class MainWindow
     }
     private void LoadAllView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ClearSearch();
         _viewKind = ViewKind.All;
         _favoritesOnly = false;
-        _viewLibRoot = _lib.RootPath;
+        _globalScope = true;                  // 快捷入口 = 全部库，不只当前这个
+        _viewLibRoot = "*";
         _currentFolder = null;
 
         PrepareQuickView("全部音效");
         SetAssets(ReadAllRows());
+        ContentStat.Text = $"{_all.Count} 个音效 · {_libs.Count} 个库";
     }
     private void LoadRecentView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ClearSearch();
         _viewKind = ViewKind.Recent;
         _favoritesOnly = false;
-        _viewLibRoot = _lib.RootPath;
+        _globalScope = true;
+        _viewLibRoot = "*";
         _currentFolder = null;
 
         PrepareQuickView("最近导入");
 
         List<FileRow> rows;
-        try { rows = _db?.FilesRecent(_lib.RootPath, 300) ?? new List<FileRow>(); }
+        try { rows = _db?.FilesRecentAll(300) ?? new List<FileRow>(); }
         catch (Exception ex) { CrashLog("读取最近导入失败：" + ex); rows = new List<FileRow>(); }
 
         SetAssets(rows);
-        ContentStat.Text = $"{_all.Count} 个音效 · 按导入时间倒序";
+        ContentStat.Text = $"{_all.Count} 个音效 · 按导入时间倒序 · {_libs.Count} 个库";
     }
     private void LoadPlayedView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ClearSearch();
         _viewKind = ViewKind.Recent;
         _favoritesOnly = false;
-        _viewLibRoot = _lib.RootPath;
+        _globalScope = true;
+        _viewLibRoot = "*";
         _currentFolder = null;
 
         PrepareQuickView("最近播放");
 
         List<FileRow> rows;
-        try { rows = _db?.FilesUnder(_lib.RootPath) ?? new List<FileRow>(); }
+        try { rows = _db?.FilesAll() ?? new List<FileRow>(); }
         catch (Exception ex) { CrashLog("读取最近播放失败：" + ex); rows = new List<FileRow>(); }
 
         var ordered = rows
@@ -287,23 +293,24 @@ public partial class MainWindow
 
         SetAssets(ordered);
         ContentStat.Text = _all.Count == 0
-            ? "还没有播放记录，悬停卡片试听一下就会记下"
+            ? "还没有播放记录，悬停卡片试听一个就会记下"
             : $"{_all.Count} 个音效 · 按最近播放排序";
     }
     private void LoadFavoritesView()
     {
-        if (_lib?.Root is null) return;
+        if (_libs.Count == 0) { ShowFirstRunEmpty(); return; }
 
         ClearSearch();
         _viewKind = ViewKind.Favorites;
-        _viewLibRoot = _lib.RootPath;
+        _globalScope = true;
+        _viewLibRoot = "*";
         _currentFolder = null;
 
         PrepareQuickView("收藏");
 
         _favoritesOnly = true;                 // ApplyFilter 里按收藏过滤
         SetAssets(ReadAllRows());
-        ContentStat.Text = $"{_view.Count} 个收藏";
+        ContentStat.Text = $"{_view.Count} 个收藏 · {_libs.Count} 个库";
         if (_view.Count == 0)
             ShowEmptyView("还没有收藏", "点卡片右上角的爱心即可收藏，收藏过的声音都会集中在这里。", "\uE734");
         else HideEmptyViews();
@@ -313,7 +320,8 @@ public partial class MainWindow
         ContentTitle.Text = title;
         ApplyContentLayout(false, true);
 
-        var trail = TrailFor(null);
+        // 跨库视图的路径里不该出现某一个库的名字
+        var trail = _globalScope ? new List<(string Label, FolderItem? Target, Action? Act)>() : TrailFor(null);
         trail.Add((title, null, null));
         ShowCrumbs(trail);
 
@@ -453,6 +461,8 @@ public partial class MainWindow
         if (_lib?.Root is null) return;
 
         ContentTitle.Text = "搜索";
+        _globalScope = true;                  // 搜索跨库：多库时不至于只搜到一个库
+        _viewLibRoot = "*";
         ApplyContentLayout(false, true);
 
         var trail = TrailFor(null);

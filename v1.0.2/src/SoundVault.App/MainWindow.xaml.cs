@@ -77,6 +77,8 @@ public partial class MainWindow : Window
     private bool _suppressQuick;            // 程序性改快捷入口选中时，别触发加载
     private bool _suppressSidebar;          // 程序性改选中时，别触发导航
     private bool _searchMode;               // 正在显示"整库搜索结果"
+    /// <summary>快捷入口视图是否跨库（全部音效 / 收藏 / 最近导入 / 最近播放 / 标签 / 重复检查 / 搜索）。</summary>
+    private bool _globalScope;
     private bool _suppressSearch;           // 程序性改搜索框时，别触发重载
     private readonly Dictionary<string, Dictionary<string, int>> _perDirCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -510,7 +512,12 @@ public partial class MainWindow : Window
 
     private List<FileRow> ReadAllRows()
     {
-        try { return _db?.FilesUnder(_lib?.RootPath ?? "") ?? new List<FileRow>(); }
+        try
+        {
+            return _globalScope
+                ? (_db?.FilesAll() ?? new List<FileRow>())
+                : (_db?.FilesUnder(_lib?.RootPath ?? "") ?? new List<FileRow>());
+        }
         catch (Exception ex)
         {
             CrashLog("从索引读全库失败：" + ex);

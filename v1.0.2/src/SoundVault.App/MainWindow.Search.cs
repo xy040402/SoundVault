@@ -32,7 +32,7 @@ public partial class MainWindow
 
     private List<AssetItem> SearchItems()
     {
-        var root = _lib?.RootPath ?? "";
+        var root = _globalScope ? "*" : (_lib?.RootPath ?? "");
         if (_searchItems is not null && _searchItemsRoot == root && _searchItemsVersion == _dataVersion)
             return _searchItems;
 

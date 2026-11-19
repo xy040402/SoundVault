@@ -203,6 +203,55 @@ public sealed class IndexDb : IDisposable
         Query("SELECT path,dir,name,size,mtime,sr,ch,bits,dur,peaks,ok,missing FROM files WHERE lib=$p ORDER BY path;",
               ("$p", lib));
 
+    /// <summary>全部库的音效（快捷入口「全部音效」用）。</summary>
+    public List<FileRow> FilesAll() =>
+        Query("SELECT path,dir,name,size,mtime,sr,ch,bits,dur,peaks,ok,missing FROM files ORDER BY path;");
+
+    /// <summary>全部库最近导入。</summary>
+    public List<FileRow> FilesRecentAll(int limit) =>
+        Query("SELECT path,dir,name,size,mtime,sr,ch,bits,dur,peaks,ok,missing FROM files " +
+              "ORDER BY mtime DESC, path LIMIT $n;", ("$n", limit));
+
+    /// <summary>
+    /// 全部库的重复分组：和单库版同一套判据（大小 + 时长 0.1 秒精度），只是不限库。
+    /// </summary>
+    public List<List<FileRow>> DuplicateGroupsAll(int maxGroups = 200)
+    {
+        var rows = new List<FileRow>();
+        lock (_gate)
+        {
+            using var cmd = _cn.CreateCommand();
+            cmd.CommandText = @"SELECT path,dir,name,size,mtime,sr,ch,bits,dur,peaks,ok,missing FROM files
+                                WHERE missing=0 ORDER BY size, dur;";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                rows.Add(new FileRow
+                {
+                    Path = r.GetString(0),
+                    Dir = r.GetString(1),
+                    Name = r.GetString(2),
+                    Size = r.GetInt64(3),
+                    Mtime = r.GetInt64(4),
+                    SampleRate = r.GetInt32(5),
+                    Channels = r.GetInt32(6),
+                    Bits = r.GetInt32(7),
+                    DurationMs = r.GetDouble(8),
+                    Peaks = r.IsDBNull(9) ? null : (byte[])r[9],
+                    Ok = r.GetInt32(10) != 0,
+                    Missing = r.FieldCount > 11 && r.GetInt32(11) != 0
+                });
+            }
+        }
+
+        return rows
+            .GroupBy(f => (f.Size, Bucket: (long)Math.Round(f.DurationMs / 100)))
+            .Where(g => g.Count() > 1)
+            .OrderByDescending(g => g.Count())
+            .Take(maxGroups)
+            .Select(g => g.OrderBy(f => f.Path).ToList())
+            .ToList();
+    }
     /// <summary>最近导入：按文件修改时间倒序（拖动导入后 mtime 通常就是下载/复制的时间）。</summary>
     public List<FileRow> FilesRecent(string lib, int limit) =>
         Query("SELECT path,dir,name,size,mtime,sr,ch,bits,dur,peaks,ok,missing FROM files WHERE lib=$p " +
