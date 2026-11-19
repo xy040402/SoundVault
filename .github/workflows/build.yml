@@ -13,35 +13,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 找最新的版本目录
+        id: ver
+        shell: pwsh
+        run: |
+          $dirs = Get-ChildItem -Directory | Where-Object { $_.Name -match '^v\d+\.\d+\.\d+$' }
+          if (-not $dirs) { throw "没有找到 v*.*.* 版本目录" }
+          $latest = $dirs | Sort-Object { [version]($_.Name.TrimStart('v')) } -Descending | Select-Object -First 1
+          Write-Host "最新版本目录：$($latest.Name)"
+          "dir=$($latest.Name)" >> $env:GITHUB_OUTPUT
+          "version=$($latest.Name.TrimStart('v'))" >> $env:GITHUB_OUTPUT
+
       - name: 安装 .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
 
       - name: 还原
-        run: dotnet restore src/SoundVault.App/SoundVault.App.csproj
+        run: dotnet restore "${{ steps.ver.outputs.dir }}/src/SoundVault.App/SoundVault.App.csproj"
 
       - name: 断言测试
-        run: dotnet run --project tests/SoundVault.Tests -c Release
+        run: dotnet run --project "${{ steps.ver.outputs.dir }}/tests/SoundVault.Tests" -c Release
 
       - name: 发布单文件 exe
+        shell: pwsh
         run: |
-          dotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
+          $dir = "${{ steps.ver.outputs.dir }}"
+          $ver = "${{ steps.ver.outputs.version }}"
+          dotnet publish "$dir/src/SoundVault.App" -c Release -r win-x64 --self-contained `
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=1.0.0 -o dist
+            -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$ver -o dist
           Copy-Item dist/SoundVault.App.exe dist/音匣.exe -Force
 
       - name: 发布安装包
+        shell: pwsh
         run: |
-          dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
+          $dir = "${{ steps.ver.outputs.dir }}"
+          $ver = "${{ steps.ver.outputs.version }}"
+          dotnet publish "$dir/src/SoundVault.Setup" -c Release -r win-x64 --self-contained `
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=1.0.0 -o dist
+            -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$ver -o dist
 
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
-          name: SoundVault-win-x64
+          name: SoundVault-${{ steps.ver.outputs.version }}-win-x64
           path: |
             dist/音匣.exe
-            dist/音匣安装包.exe
-          if-no-files-found: error
+            dist/SoundVault-${{ steps.ver.outputs.version }}-Setup.exe
+          if-no-files-found: warn

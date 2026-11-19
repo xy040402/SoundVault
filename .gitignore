@@ -1,27 +1,25 @@
-# 构建产物
+# ── 构建产物（不进仓库）──
+_local/
+*/_local/
 bin/
 obj/
-_local/
-
-# IDE / 工具
 .vs/
 .idea/
 *.user
 *.suo
 *.DotSettings.user
 
-# 临时
+# ── 安装包（只放本地，GitHub 走 Release）──
+*/安装包/*.exe
+*/安装包/*.zip
+*/安装包/*.msi
+
+# ── 临时 ──
 *.log
 *.tmp
 *.bak
 Thumbs.db
 desktop.ini
-
-# 测试产物
-tests/**/bin/
-tests/**/obj/
 TestResults/
-
-# 本地环境
 .env
 .vscode/

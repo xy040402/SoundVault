@@ -27,6 +27,34 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 
 ---
 
+## 版本目录
+
+仓库按**版本一个文件夹**组织，每版都自带完整源码、说明书和安装包：
+
+| 目录 | 状态 | 内容 |
+|---|---|---|
+| [`v1.0.0/`](v1.0.0/) | ✅ 已发布 | 源码 · [使用说明书](v1.0.0/使用说明书.md) · 安装包（Release 下载） |
+| [`v1.0.1/`](v1.0.1/) | 🚧 开发中 | [修改意见与方案](v1.0.1/修改意见.md) · 源码 · 说明书 · 安装包 |
+
+```
+SoundVault/
+├─ v1.0.0/           一个已发布版本
+│  ├─ src/ tests/ tools/
+│  ├─ 使用说明书.md
+│  └─ 安装包/         （exe 不进 Git，见该目录 README）
+├─ v1.0.1/           下一个版本
+│  ├─ 修改意见.md      这一版要修什么、怎么修
+│  ├─ src/ tests/ tools/
+│  ├─ 使用说明书.md
+│  └─ 安装包/
+├─ docs/             跨版本资料（开发历程、设计文档、开发记录）
+└─ CHANGELOG.md      版本变更历史
+```
+
+> 每个版本文件夹都是**自包含**的：拿到 `v1.0.1/` 一个目录就能编译出这一版。
+
+---
+
 
 ## 这是什么
 
@@ -52,7 +80,7 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 | **外观** | 深色/浅色、自定义主色、面板透明度、圆角、Win11 云母、省电模式 |
 | **素材包识别** | 自动认出封面、授权文件、版本号，以及"没下完的文件" |
 
-逐项操作说明见 [docs/使用说明书.md](docs/使用说明书.md)；
+逐项操作说明见 [v1.0.0/使用说明书.md](v1.0.0/使用说明书.md)；
 从立项到发布的完整经过见 [docs/开发历程.md](docs/开发历程.md)。
 
 ---
@@ -68,7 +96,7 @@ Windows 10 / 11 · WPF (.NET 10) · 单文件程序 · 不联网、不改你的�
 **方式二：绿色版（不单独提供下载）**
 
 Release 只提供安装包。想要纯绿色版：装完把 `C:\Program Files\SoundVault\音匣.exe` 拷走即可，
-或者自己 `.\build.ps1` 构建一份。
+或者自己进 `v1.0.1\` 跑 `.\build.ps1` 构建一份。
 
 **便携模式**：在 `音匣.exe` 旁边建一个空的 `data\` 文件夹，配置和索引就存在那里，整个文件夹拷走即可。
 
@@ -91,7 +119,7 @@ Release 只提供安装包。想要纯绿色版：装完把 `C:\Program Files\So
 
 ```powershell
 # 单文件 exe
-dotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
+cd v1.0.1`r`ndotnet publish src/SoundVault.App -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 
@@ -101,7 +129,7 @@ dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
   -p:IncludeNativeLibrariesForSelfExtract=true -o _local/dist
 ```
 
-或者直接跑 `.\build.ps1`（产物在 `_local\dist\`）。
+或者进版本目录（如 `v1.0.1\`）直接跑 `.\build.ps1`（产物在该目录的 `_local\dist\`）。
 
 ### 跑测试
 
@@ -116,22 +144,28 @@ dotnet publish src/SoundVault.Setup -c Release -r win-x64 --self-contained `
 ## 目录结构
 
 ```
-src/
-  SoundVault.App/         主程序（WPF）
-    MainWindow*.cs        主窗口，按功能拆成多个 partial
-    ViewModels/           SearchViewModel / SelectionViewModel（纯逻辑，可单测）
-    Services/             索引、拼音搜索、LUFS、素材包扫描、主题…
-    Dialogs/              设置、导出、批量重命名、元数据…
-    Controls/             虚拟化卡片面板、星级控件…
-  SoundVault.Setup/       安装器 / 卸载器（同一个 exe，靠参数区分）
-tests/                    断言测试
-tools/                    构建、测试、签名脚本
-docs/                     使用说明书、设计文档、截图、Logo
-docs/dev/                 开发记录、交接说明、未完成清单、验证报告（过程存档）
-_local/                   构建产物与历史版本（不进仓库，.gitignore 已排除）
-```
+v1.0.0/                    一个已发布版本（自包含）
+  src/
+    SoundVault.App/        主程序（WPF）
+      MainWindow*.cs       主窗口，按功能拆成多个 partial
+      ViewModels/          SearchViewModel / SelectionViewModel（纯逻辑，可单测）
+      Services/            索引、拼音搜索、LUFS、素材包扫描、主题…
+      Dialogs/             设置、导出、批量重命名、元数据…
+      Controls/            虚拟化卡片面板、星级控件…
+    SoundVault.Setup/      安装器 / 卸载器（同一个 exe，靠参数区分）
+  tests/                   断言测试
+  tools/                   构建、测试、签名脚本
+  使用说明书.md              这一版的手册
+  安装包/                  构建产物（exe 不进 Git）
 
----
+v1.0.1/                    下一个版本，结构同上 + 修改意见.md
+  ├─ 修改意见.md            这一版要修什么、怎么修
+  └─ …
+
+docs/                      跨版本资料：开发历程、设计文档、项目简介
+docs/dev/                  开发记录、交接说明、验证报告（过程存档）
+_local/                    本地杂物：构建产物、历史 exe、备份（不进仓库）
+```
 
 ## 已知限制
 
@@ -154,6 +188,6 @@ _local/                   构建产物与历史版本（不进仓库，.gitignor
 
 - **反馈 / bug 报告**：2284673040@qq.com
 - **Issue**：欢迎在仓库里开 issue，附上 Windows 版本、复现步骤；能带截图更好
-- **使用问题**：先看 [`docs/使用说明书.md`](docs/使用说明书.md) 的「常见问题」一节
+- **使用问题**：先看 [`使用说明书`](v1.0.0/使用说明书.md) 的「常见问题」一节
 
 > 这个软件不收集任何数据、不联网，装完就是本地的。

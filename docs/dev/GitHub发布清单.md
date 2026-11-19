@@ -92,7 +92,7 @@ git push -u origin main
    ### 说明
    - 仅 Windows 10/11 x64，无需预装 .NET
    - 单文件未签名，SmartScreen 可能提示"未知发布者"
-   - 详细用法见 [使用说明书](docs/使用说明书.md)
+   - 详细用法见 [使用说明书](../../v1.0.0/使用说明书.md)
    ```
 5. **Attach binary**（只传一个文件，其余 exe 都不放）：
    - `_local\dist\SoundVault-1.0.0-Setup.exe`（132 MB，已内嵌主程序；用英文名，中文名会被 GitHub 转义）

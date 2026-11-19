@@ -1,0 +1,1198 @@
+<Window x:Class="SoundVault.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SoundVault.App.Controls"
+        Title="音匣 SoundVault" Width="1280" Height="800" MinWidth="1040" MinHeight="640"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource WindowBg}"
+        FontFamily="Microsoft YaHei UI" FontSize="12" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" SnapsToDevicePixels="True"
+        AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
+        PreviewKeyDown="Window_KeyDown" Focusable="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+
+        <!-- 图标按钮 -->
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBg}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CloseBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E81123"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+
+        <!-- 左栏列表项 -->
+        <Style x:Key="SideItem" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Height="28" CornerRadius="7" Background="Transparent" Padding="7,0">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 面包屑的一段（可点回上层） -->
+        <Style x:Key="CrumbBtn" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HoverBg}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 文件夹行（库 / 子文件夹 共用一个模板，层级靠 IndentMargin 缩进） -->
+        <DataTemplate x:Key="FolderRowTpl">
+            <Grid Margin="{Binding IndentMargin}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <!-- 展开/收起三角：整格都可点，点了只折叠/展开，不切换视图 -->
+                <Border Grid.Column="0" Background="Transparent" Cursor="Hand"
+                        ToolTip="展开 / 收起" MouseLeftButtonDown="Chevron_Click">
+                    <TextBlock Text="{Binding ChevronGlyph}" FontFamily="Segoe MDL2 Assets"
+                               FontSize="8" Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center"/>
+                </Border>
+                <!-- 圆点只留给库节点：子文件夹有缩进和三角就够了，再加灰点是一片噪点 -->
+                <Border x:Name="dot" Grid.Column="1" Width="6" Height="6" CornerRadius="2" VerticalAlignment="Center"
+                        Background="{DynamicResource Accent}" Visibility="Collapsed"/>
+                <TextBlock x:Name="nameText" Grid.Column="2" Text="{Binding Name}" Foreground="{DynamicResource TextSecondary}"
+                           FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="3" Text="{Binding CountText}" Foreground="{DynamicResource TextTertiary}"
+                           FontSize="10" VerticalAlignment="Center" Margin="6,0,4,0"/>
+                <!-- 库管理入口：库节点才有，点了弹菜单（重命名 / 重新扫描 / 移除） -->
+                <Border x:Name="libMenuBtn" Grid.Column="4" Width="18" Height="16" CornerRadius="5"
+                        Background="Transparent" Cursor="Hand" Visibility="Collapsed"
+                        ToolTip="库管理：重命名 / 重新扫描 / 移除"
+                        MouseLeftButtonDown="LibraryMenu_Click">
+                    <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                               Foreground="{DynamicResource TextTertiary}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsLibrary}" Value="True">
+                    <!-- 库是根：强调色圆点 + 稍微加粗，跟下面一层层文件夹拉开层次 -->
+                    <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="libMenuBtn" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="nameText" Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                    <Setter TargetName="nameText" Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 子文件夹卡片 -->
+        <DataTemplate x:Key="FolderCardTpl">
+            <Border Height="74" Margin="7" HorizontalAlignment="Stretch" CornerRadius="{DynamicResource R12}" Padding="13,0" Cursor="Hand"
+                    BorderThickness="1" MouseLeftButtonDown="FolderCard_Click">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource CardHover}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="38" Height="38" CornerRadius="10" VerticalAlignment="Center"
+                            Background="{Binding ThumbBrush}"/>
+                    <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding CardCountText}" Foreground="{DynamicResource TextTertiary}"
+                                   FontSize="10.5" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <!-- 重复检查的一行（v0.9） -->
+        <DataTemplate x:Key="DupRowTpl">
+            <Border Height="58" Margin="0,3" CornerRadius="10" Padding="14,0" BorderThickness="1"
+                    Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource PanelBorder}"
+                    Cursor="Hand" MouseLeftButtonDown="DupRow_Click"
+                    ToolTip="{Binding PathsText}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center" Width="120">
+                        <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text="{Binding CountText}" FontSize="10.5" Margin="0,3,0,0"
+                                   Foreground="{DynamicResource TextTertiary}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1" Text="{Binding Where}" FontSize="11" Margin="16,0,16,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextSecondary}"/>
+
+                    <TextBlock Grid.Column="2" Text="在资源管理器里看 ›" FontSize="10.5" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextTertiary}"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <!-- 标签页的一行：名字 + 数量 + 改名/删除（v0.8） -->
+        <DataTemplate x:Key="TagRowTpl">
+            <Border Height="46" Margin="0,3" CornerRadius="10" Padding="14,0" BorderThickness="1"
+                    Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource PanelBorder}"
+                    Cursor="Hand" MouseLeftButtonDown="TagPageRow_Click">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Accent}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding CountText}" FontSize="11" Margin="12,0,0,0"
+                               VerticalAlignment="Center" Foreground="{DynamicResource TextTertiary}"/>
+
+                    <Button Grid.Column="2" Click="TagRename_Click" Focusable="False" Cursor="Hand" Margin="0,0,6,0"
+                            ToolTip="给这个标签改个名字" AutomationProperties.Name="标签改名">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Height="28" CornerRadius="8" Padding="12,0" Background="{DynamicResource PanelBg}"
+                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                    <TextBlock Text="改名" FontSize="11.5" Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button Grid.Column="3" Click="TagDelete_Click" Focusable="False" Cursor="Hand"
+                            ToolTip="删除这个标签（音效本身不动）" AutomationProperties.Name="标签删除">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Height="28" CornerRadius="8" Padding="12,0" Background="Transparent"
+                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                    <TextBlock Text="删除" FontSize="11.5" Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <!-- 音效卡片 -->
+        <DataTemplate x:Key="AssetCardTpl">
+            <Border Height="156" Margin="7" HorizontalAlignment="Stretch" CornerRadius="{DynamicResource R12}" Padding="10"
+                    Opacity="{Binding CardOpacity}"
+                    BorderThickness="1" Cursor="Hand"
+                    MouseRightButtonDown="AssetCard_RightClick"
+                    MouseLeftButtonDown="AssetCard_Click" MouseLeftButtonUp="Card_MouseUp"
+                    MouseMove="Card_MouseMove" MouseEnter="Card_MouseEnter" MouseLeave="Card_MouseLeave">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource CardHover}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="52"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 「本工程已用」角标（v0.20）：今天拖出去过或播过 -->
+                    <TextBlock Grid.RowSpan="5" Text="已用" FontSize="8.5" Margin="0,0,2,1" Padding="5,1"
+                               HorizontalAlignment="Right" VerticalAlignment="Bottom" IsHitTestVisible="False"
+                               Opacity="0.85" Foreground="{DynamicResource Accent}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding UsedToday}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="playDot" Width="4" Height="4" CornerRadius="2" Margin="0,0,6,0"
+                                VerticalAlignment="Center" Background="{DynamicResource Accent}" Visibility="Collapsed"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Index}" Foreground="{DynamicResource TextTertiary}"
+                                   FontSize="9.5" FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="pinMark" Grid.Column="2" Text="固定" FontSize="9" Margin="0,0,6,0"
+                                   Visibility="Collapsed" Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                                <!-- 评分：5 颗星直接点（点第 N 颗 = N 星，再点同一颗 = 清零），不用键盘 -->
+                        <controls:StarRating Grid.Column="3" x:Name="stars" VerticalAlignment="Center" Margin="0,0,2,0"
+                                             Value="{Binding Rating}"
+                                             FilledBrush="{DynamicResource Accent}"
+                                             EmptyBrush="{DynamicResource TextSecondary}"
+                                             StarClicked="Star_Click"
+                                             AutomationProperties.Name="评分"/>
+
+                        <!-- 收藏：直接画在卡片上、直接点（键盘 F 也还在） -->
+                        <Button x:Name="heartBtn" Grid.Column="4" Click="Heart_Click" Focusable="False"
+                                Cursor="Hand" Margin="0,-2,-4,-2"
+                                ToolTip="收藏 / 取消收藏"
+                                AutomationProperties.Name="收藏">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <!-- 透明底保证整块都能点中 -->
+                                    <Border Background="Transparent" Padding="6,3">
+                                        <ContentPresenter/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextTertiary}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <TextBlock x:Name="heartGlyph" Text="{Binding HeartGlyph}" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="11" VerticalAlignment="Center"/>
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="1" Margin="0,6,0,0" CornerRadius="7" Background="{DynamicResource WavePlate}"
+                            ClipToBounds="True" Cursor="Hand" MouseLeftButtonDown="Wave_Seek"
+                            MouseLeftButtonUp="Wave_MouseUp" LostMouseCapture="Wave_LostCapture"
+                            MouseMove="Wave_MouseMove" MouseLeave="Wave_MouseLeave">
+                        <Grid>
+                            <controls:WaveformView WaveDataSource="{Binding Wave}" WaveBrush="{DynamicResource Wave}"
+                                               PlayheadFraction="{Binding Playhead}"
+                                               CursorFraction="{Binding CursorPos}"
+                                               PlayedBrush="{DynamicResource AccentSoft}"
+                                               PlayheadBrush="{DynamicResource Playhead}"/>
+                            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6"
+                                    CornerRadius="5" Padding="6,2" Background="#F59E0B">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="文件丢失" FontSize="9" FontWeight="Bold" Foreground="#1A1A1A"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}"
+                               FontSize="12" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Row="3" Text="{Binding Meta}" Foreground="{DynamicResource TextTertiary}"
+                               FontSize="10" Margin="0,3,0,0"/>
+
+                    <!-- 标签行本身就是入口：做成一个看得见的小按钮，没有标签时显示「＋ 标签」 -->
+                    <Border Grid.Row="4" Background="{DynamicResource HoverBg}" BorderBrush="{DynamicResource PanelBorder}"
+                            BorderThickness="1" CornerRadius="6" Padding="6,1" Margin="0,4,0,0"
+                            HorizontalAlignment="Left" Cursor="Hand"
+                            ToolTip="点这里给这个音效加 / 改标签"
+                            MouseLeftButtonDown="TagLine_Click">
+                        <TextBlock Text="{Binding TagDisplay}" FontSize="9.5" TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextTertiary}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTags}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                    <Setter TargetName="playDot" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                    <Setter TargetName="pinMark" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+
+</DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 主题化滚动条：深色下不再是刺眼的白条 -->
+        <Style x:Key="ScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="tb" CornerRadius="4" Margin="2"
+                                Background="{DynamicResource ScrollThumb}"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="tb" Property="Background" Value="{DynamicResource TextSecondary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 滚动条两端的箭头：明确告诉用户"头"和"尾"在哪 -->
+        <Style x:Key="ScrollArrow" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border x:Name="ab" Background="Transparent" CornerRadius="4" Margin="1,0">
+                            <Path x:Name="chev" Data="M0,3 L4,0 L8,3"
+                                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Tag" Value="down">
+                                <Setter TargetName="chev" Property="Data" Value="M0,0 L4,3 L8,0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ab" Property="Background" Value="{DynamicResource HoverBg}"/>
+                                <Setter TargetName="chev" Property="Stroke" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="13"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="12"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="12"/>
+                            </Grid.RowDefinitions>
+
+                            <RepeatButton Grid.Row="0" Tag="up" Style="{StaticResource ScrollArrow}"
+                                          Command="{x:Static ScrollBar.LineUpCommand}"/>
+
+                            <Track x:Name="PART_Track" Grid.Row="1" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  Focusable="False" Opacity="0"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ScrollThumbStyle}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  Focusable="False" Opacity="0"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+
+                            <RepeatButton Grid.Row="2" Tag="down" Style="{StaticResource ScrollArrow}"
+                                          Command="{x:Static ScrollBar.LineDownCommand}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 可点击胶囊：普通态 / 打开态各一套样式，悬浮由触发器换底色 -->
+        <Style x:Key="ClickPill" TargetType="Border" BasedOn="{StaticResource Pill}">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="{DynamicResource PanelBg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PillHoverBg}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ClickPillOn" TargetType="Border" BasedOn="{StaticResource ClickPill}">
+            <Setter Property="Background" Value="{DynamicResource AccentSoft}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentSoftHover}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 与主题统一的 tooltip（系统默认是白底方角） -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource MenuBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FlatText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource MenuBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}"
+                                BorderThickness="1" CornerRadius="10" Padding="4" SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 菜单分隔线：撑满整行，左右各留 8px（菜单内部按 SeparatorStyleKey 查找样式） -->
+        <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1" Margin="8,6" Background="{DynamicResource Divider}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid>
+                            <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="10,6" Margin="2,1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="check" Text="✓" FontSize="11" Visibility="Collapsed"
+                                               Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                                    <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="arrow" Grid.Column="2" Text="›" FontSize="11" Margin="12,0,0,0"
+                                               Visibility="Collapsed" IsHitTestVisible="False"
+                                               Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- 子菜单：以前模板里没有这段，所以「评分 / 标签 / 加入到集合」点了没反应（v0.41 修） -->
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                   Placement="Right" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                                   PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                   HorizontalOffset="-2" VerticalOffset="-8">
+                                <Border Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}"
+                                        BorderThickness="1" CornerRadius="8" Padding="4" Margin="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.5" Color="Black"/>
+                                    </Border.Effect>
+                                    <ItemsPresenter/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="arrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="check" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextTertiary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+
+        <!-- 环境光：替代壁纸，让半透明面板有层次 -->
+        <Rectangle x:Name="Ambient1" Fill="{DynamicResource AmbientA}"/>
+        <Rectangle x:Name="Ambient2" Fill="{DynamicResource AmbientB}"/>
+        <Rectangle x:Name="Ambient3" Fill="{DynamicResource AmbientC}"/>
+
+
+        <Grid x:Name="ContentRoot">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="54"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="78"/>
+            </Grid.RowDefinitions>
+
+            <!-- ① 标题栏 -->
+            <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseDown" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                      <Image Width="18" Height="18" Stretch="Uniform" Source="/Assets/logo-256.png"
+                             RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                    <TextBlock Text="音匣" FontWeight="SemiBold" FontSize="12" Margin="9,0,0,0"
+                               Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                    <Border Height="22" CornerRadius="7" Padding="9,0" Margin="14,0,0,0"
+                            Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                        <TextBlock x:Name="LibTab" Text="素材包" FontSize="10.5" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                    <Button x:Name="PinBtn" Style="{StaticResource IconBtn}" Content="&#xE840;" Click="PinBtn_Click"
+                            ToolTip="窗口置顶：开着时音匣盖在别的软件上面，方便往 DAW 里拖"/>
+                    <Button x:Name="SettingsBtn" Style="{StaticResource IconBtn}" Content="&#xE713;" ToolTip="设置" Click="SettingsBtn_Click"/>
+                    <Button Style="{StaticResource IconBtn}" Content="&#xE921;" Click="MinBtn_Click" ToolTip="最小化"/>
+                    <Button Style="{StaticResource IconBtn}" Content="&#xE922;" Click="MaxBtn_Click" ToolTip="最大化"/>
+                    <Button Style="{StaticResource CloseBtn}" Content="&#xE8BB;" Click="CloseBtn_Click" ToolTip="关闭"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ② 工具栏 -->
+            <Grid Grid.Row="1" Margin="16,0,16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Width="300" Height="32" CornerRadius="{DynamicResource R9}" Background="{DynamicResource SearchBg}"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                        ToolTip="打字搜名字 / 拼音首字母；也支持过滤语法：&#x0A;#标签 · star:&gt;=4 · dur:&lt;2s · sr:&gt;48k · ch:2 · type:wav">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="10,0,0,0"
+                                   Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Center"/>
+                        <Grid Grid.Column="1">
+                            <TextBlock x:Name="SearchHint" Text="搜索音效、标签、拼音首字母…" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource TextTertiary}" FontSize="12"
+                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <TextBox x:Name="SearchBox" Margin="8,0,54,0" Background="Transparent" BorderThickness="0"
+                                     Foreground="{DynamicResource TextPrimary}" FontSize="12"
+                                     VerticalContentAlignment="Center" CaretBrush="{DynamicResource Accent}"
+                                     TextChanged="SearchBox_TextChanged"/>
+                            <!-- 清空：有内容时才出现 -->
+                            <!-- 右侧两个小按钮：清空（有内容才出现）+ 语法帮助 -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Margin="0,0,4,0">
+                                <Border x:Name="ClearSearchBtn" Width="20" Height="20" CornerRadius="10" Margin="0,0,2,0"
+                                        Cursor="Hand" Background="{DynamicResource HoverBg}" Visibility="Collapsed"
+                                        ToolTip="清空搜索"
+                                        MouseLeftButtonDown="ClearSearch_Click">
+                                    <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                               Foreground="{DynamicResource TextTertiary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border x:Name="SearchHelpBtn" Width="20" Height="20" CornerRadius="10"
+                                        Cursor="Hand" Background="{DynamicResource HoverBg}"
+                                        ToolTip="搜索语法怎么用"
+                                        MouseLeftButtonDown="SearchHelp_Click">
+                                    <TextBlock Text="?" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextTertiary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- 面包屑：内容由代码按层级生成（根目录只有库名，子文件夹逐级追加，每段可点回上层） -->
+                <StackPanel x:Name="CrumbBar" Grid.Column="1" Orientation="Horizontal"
+                            VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border x:Name="SortPill" Style="{StaticResource ClickPill}" Margin="0,0,7,0"
+                            ToolTip="排序：点击选择字段与升/降序"
+                            MouseLeftButtonDown="Sort_Click">
+                        <TextBlock x:Name="SortText" Text="名称 ↑" Style="{StaticResource FlatText}"/>
+                    </Border>
+                    <Border x:Name="SaveSearchPill" Style="{StaticResource ClickPill}" Margin="0,0,7,0" Visibility="Collapsed"
+                            ToolTip="把当前搜索条件存成「智能文件夹」，以后点一下就回来"
+                            MouseLeftButtonDown="SaveSearch_Click">
+                        <TextBlock Text="保存搜索" Style="{StaticResource FlatText}"/>
+                    </Border>
+                    <Border x:Name="ExportPill" Style="{StaticResource ClickPill}" Margin="0,0,7,0"
+                            ToolTip="导出选中音效（未选中则导出当前列表）"
+                            MouseLeftButtonDown="Export_Click">
+                        <TextBlock Text="导出" Style="{StaticResource FlatText}"/>
+                    </Border>
+                    <Border x:Name="DepthPill" Style="{StaticResource ClickPill}"
+                            ToolTip="包含子文件夹里的音效"
+                            MouseLeftButtonDown="Depth_Click">
+                        <TextBlock x:Name="DepthText" Text="深度：关" Style="{StaticResource FlatText}"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <!-- ③ 主体 -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="SidebarColumn" Width="244" MinWidth="150" MaxWidth="560"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左栏 -->
+                <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource PanelBg}"
+                        BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,1,0"
+                        SizeChanged="SidebarPanel_SizeChanged">
+                    <DockPanel LastChildFill="True">
+                        <Border DockPanel.Dock="Bottom" Height="36" Margin="8,8,8,8" CornerRadius="9"
+                                BorderThickness="1" BorderBrush="{DynamicResource PanelBorder}" Background="#08FFFFFF"
+                                Cursor="Hand" MouseLeftButtonDown="AddLibrary_Click">
+                            <TextBlock Text="＋ 拖入文件夹新建库" FontSize="11.5" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+                        </Border>
+
+                        <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      PreviewMouseWheel="Sidebar_PreviewMouseWheel">
+                            <StackPanel Margin="8,10,8,6">
+                                <TextBlock Text="快捷入口" FontSize="10" Margin="8,0,0,6"
+                                           Foreground="{DynamicResource TextTertiary}"/>
+                                <ListBox x:Name="QuickList" Background="Transparent" BorderThickness="0" Focusable="False"
+                                         ItemContainerStyle="{StaticResource SideItem}" SelectionMode="Single"
+                                         SelectionChanged="QuickList_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBoxItem>
+                                        <TextBlock Text="全部音效" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                    <ListBoxItem>
+                                        <TextBlock Text="收藏" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                    <ListBoxItem>
+                                        <TextBlock Text="最近导入" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                    <ListBoxItem>
+                                        <TextBlock Text="标签" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                    <ListBoxItem>
+                                        <TextBlock Text="重复检查" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                    <ListBoxItem>
+                                        <TextBlock Text="最近播放" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                                    </ListBoxItem>
+                                </ListBox>
+
+                                <!-- 分组分割线：两侧留白，不顶到边 -->
+                                <Border Height="1" Margin="10,12,10,2" Background="{DynamicResource Divider}"/>
+
+                                <StackPanel x:Name="SmartSection">
+                                    <TextBlock Text="智能文件夹" FontSize="10" Margin="8,10,0,6"
+                                               Foreground="{DynamicResource TextTertiary}"/>
+                                    <TextBlock x:Name="SmartEmptyHint" Text="搜索后点「保存搜索」" FontSize="10" Margin="10,2,0,0"
+                                               Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"/>
+                                    <ListBox x:Name="SmartList" Background="Transparent" BorderThickness="0" MouseRightButtonDown="SmartList_RightClick"
+                                             Focusable="False" ItemContainerStyle="{StaticResource SideItem}"
+                                             SelectionChanged="SmartList_SelectionChanged"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                               Margin="2,0,7,0" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource Accent}"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="11.5"
+                                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource TextSecondary}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </StackPanel>
+
+                                <!-- 集合（v0.21）：手动把几个音效攒成一组，跨文件夹 -->
+                                <Border Height="1" Margin="10,12,10,2" Background="{DynamicResource Divider}"/>
+                                <TextBlock Text="集合" FontSize="10" Margin="8,10,0,6"
+                                           Foreground="{DynamicResource TextTertiary}"/>
+                                <TextBlock x:Name="CollectionEmptyHint" Text="选中音效后右键「添加到集合」" FontSize="10"
+                                           Margin="10,0,0,4" Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"/>
+                                <ListBox x:Name="CollectionList" Background="Transparent" BorderThickness="0"
+                                         Focusable="False" ItemContainerStyle="{StaticResource SideItem}"
+                                         SelectionChanged="CollectionList_SelectionChanged"
+                                         PreviewMouseRightButtonDown="CollectionList_RightClick"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                           Margin="2,0,7,0" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource Accent}"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="11.5" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextSecondary}"/>
+                                                <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource TextTertiary}"/>
+                      <Border x:Name="colMenuBtn" Width="18" Height="16" Margin="6,0,0,0" CornerRadius="5"
+                              Background="Transparent" Cursor="Hand" VerticalAlignment="Center"
+                              ToolTip="集合管理：重命名 / 删除"
+                              MouseLeftButtonDown="CollectionMore_Click">
+                          <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                     Foreground="{DynamicResource TextTertiary}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                      </Border>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <!-- 分组分割线：两侧留白，不顶到边 -->
+                                <Border Height="1" Margin="10,12,10,2" Background="{DynamicResource Divider}"/>
+
+                                <TextBlock Text="库" FontSize="10" Margin="8,10,0,6"
+                                           Foreground="{DynamicResource TextTertiary}"/>
+                                <ListBox x:Name="FolderList" Background="Transparent" BorderThickness="0" Focusable="False"
+                                         MouseRightButtonDown="FolderList_RightClick"
+                                         ItemContainerStyle="{StaticResource SideItem}"
+                                         ItemTemplate="{StaticResource FolderRowTpl}"
+                                         SelectionChanged="FolderList_SelectionChanged"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <!-- 左右分隔条：拖动改左栏宽度（150–560），双击复位 -->
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              Background="Transparent" Cursor="SizeWE" ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="False" Focusable="False"
+                              MouseDoubleClick="SidebarSplitter_DoubleClick"
+                              ToolTip="拖动改左栏宽度，双击恢复">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Grid Background="Transparent">
+                                <!-- 平时是一条很淡的竖线，悬停/拖动时变亮 -->
+                                <Border x:Name="bar" Width="1" HorizontalAlignment="Center"
+                                        Background="{DynamicResource Divider}"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bar" Property="Width" Value="2"/>
+                                    <Setter TargetName="bar" Property="Background" Value="{DynamicResource AccentBorder}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
+                <!-- 内容区 -->
+                <Grid x:Name="ContentArea" Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="22,16,22,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ContentTitle" Text="音效" FontSize="17" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Bottom"/>
+                        <TextBlock x:Name="ContentStat" Grid.Column="1" Text="" FontSize="11" Margin="14,0,0,2"
+                                   Foreground="{DynamicResource TextTertiary}" VerticalAlignment="Bottom"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <!-- 0 = 子文件夹卡片条（有子文件夹时才占位置，最多两行，多了自己滚） -->
+                            <RowDefinition x:Name="FolderRowDef" Height="*"/>
+                            <!-- 1 = 音效网格 -->
+                            <RowDefinition x:Name="AssetRowDef" Height="0"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 库视图 / 文件夹里的子文件夹卡片（一层只有几十个，不需要虚拟化） -->
+                        <ScrollViewer x:Name="FolderScroll" Grid.Row="0"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="15,0,15,18">
+                            <ItemsControl x:Name="SubFolderList" ItemTemplate="{StaticResource FolderCardTpl}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><controls:FillWrapPanel MinItemWidth="230" ItemHeight="88"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- 标签页（v0.8）：所有标签集中管理，可改名 / 删除，点一行就筛这个标签 -->
+                        <ScrollViewer x:Name="TagPageScroll" Grid.RowSpan="2" Visibility="Collapsed"
+                                      VerticalScrollBarVisibility="Auto" Padding="15,0,15,18">
+                            <ItemsControl x:Name="TagPageList" ItemTemplate="{StaticResource TagRowTpl}">
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <!-- 音效网格：虚拟化，只创建可见的卡片（万级文件也不卡）。
+                             用 ListBox 而不是 ItemsControl —— 只有 ListBox 的模板里带 ScrollViewer，
+                             虚拟化面板才能被挂成 IScrollInfo，滚动范围才正确。 -->
+                        <ListBox x:Name="AssetList" Grid.Row="1" Visibility="Collapsed"
+                                 Background="Transparent" BorderThickness="0" Padding="15,0,15,18"
+                                 Focusable="False" IsTabStop="False"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 TextOptions.TextHintingMode="Animated"
+                                 ItemTemplate="{StaticResource AssetCardTpl}">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <!-- 卡片自己画选中/悬停，容器保持完全透明，避免系统默认的白底蓝框 -->
+                                    <Setter Property="Focusable" Value="False"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <controls:VirtualizingWrapPanel CellWidth="214" CellHeight="170"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+
+                        <!-- 建索引进度：只在扫描超过 0.35 秒后出现，避免一闪而过 -->
+                        <Border x:Name="ScanPill" Grid.RowSpan="2" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                Margin="0,10,0,0" CornerRadius="{DynamicResource R12}" Padding="15,10"
+                                Background="{DynamicResource OverlayBg}" BorderBrush="{DynamicResource OverlayBorder}" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.45" Color="#FF000000"/>
+                            </Border.Effect>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="ScanText" Text="正在建立索引…" FontSize="11.5"
+                                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                <Border Width="150" Height="3" CornerRadius="2" Margin="12,0,0,0"
+                                        VerticalAlignment="Center" Background="{DynamicResource Divider}">
+                                    <Border x:Name="ScanFill" HorizontalAlignment="Left" CornerRadius="2"
+                                            Background="{DynamicResource Accent}" RenderTransformOrigin="0,0.5">
+                                        <Border.RenderTransform>
+                                            <ScaleTransform x:Name="ScanScale" ScaleX="0"/>
+                                        </Border.RenderTransform>
+                                    </Border>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 空态：第一次用（没有任何库） -->
+                        <StackPanel x:Name="EmptyState" Grid.RowSpan="2" Visibility="Collapsed" HorizontalAlignment="Center"
+                                    Margin="0,120,0,0" MaxWidth="420">
+                            <Border Width="120" Height="78" CornerRadius="{DynamicResource R12}" Background="{DynamicResource CardBg}"
+                                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" HorizontalAlignment="Center"/>
+                            <TextBlock Text="把素材包文件夹拖到左边" FontSize="18" FontWeight="SemiBold" Margin="0,26,0,10"
+                                       HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="音匣会递归扫描其中的音频文件，建立波形与索引。&#x0a;不会移动、不会修改你的任何文件。"
+                                       TextAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12.5"
+                                       LineHeight="22"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">
+                                <Border Height="34" CornerRadius="9" Padding="17,0" Background="{DynamicResource Accent}"
+                                        Cursor="Hand" MouseLeftButtonDown="AddLibrary_Click">
+                                    <TextBlock Text="选择文件夹…" Foreground="{DynamicResource OnAccent}" FontSize="12.5"
+                                               FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 空态：当前视图没东西（收藏为空 / 文件夹里没音频 / 搜索无结果） -->
+                        <StackPanel x:Name="EmptyView" Grid.RowSpan="2" Visibility="Collapsed" HorizontalAlignment="Center"
+                                    Margin="0,110,0,0" MaxWidth="470">
+                            <TextBlock x:Name="EmptyViewIcon" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                       HorizontalAlignment="Center" Foreground="{DynamicResource TextTertiary}"/>
+                            <TextBlock x:Name="EmptyViewTitle" Text="这里还没有东西" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"
+                                       Margin="0,18,0,8" HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock x:Name="EmptyViewBody" Text="" TextAlignment="Center" LineHeight="21" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondary}" FontSize="12.5"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- ④ 试听条 -->
+            <Border x:Name="PlayerBar" Grid.Row="3" Background="{DynamicResource PanelBg}"
+                    BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0">
+                <Grid Margin="16,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconBtn}" Content="&#xE892;" IsEnabled="False"/>
+                        <Border x:Name="PlayBtn" Width="34" Height="34" CornerRadius="10" Margin="4,0"
+                                Background="{DynamicResource Accent}" Cursor="Hand" MouseLeftButtonDown="PlayPause_Click">
+                            <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Button Style="{StaticResource IconBtn}" Content="&#xE71A;" Click="StopBtn_Click" ToolTip="停止"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Width="300" Height="38" Margin="14,0,0,0" CornerRadius="7"
+                            Background="{DynamicResource WavePlate}" VerticalAlignment="Center" ClipToBounds="True">
+                        <Grid>
+                            <Border x:Name="PlayerProgress" HorizontalAlignment="Stretch" CornerRadius="7"
+                                    Background="{DynamicResource AccentSoft}" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="PlayerScale" ScaleX="0"/>
+                                </Border.RenderTransform>
+                            </Border>
+                            <TextBlock x:Name="PlayerLabel" Text="悬停任意音效即可循环试听" FontSize="10.5" Margin="10,0"
+                                       VerticalAlignment="Center" Foreground="{DynamicResource TextTertiary}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock x:Name="PlayerTime" Grid.Column="2" Text="00:00.00 / 00:00.00" Margin="14,0,0,0"
+                               VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                               Foreground="{DynamicResource TextSecondary}"/>
+
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="LoopPill" Style="{StaticResource ClickPill}" Height="26" Margin="0,0,7,0"
+                                ToolTip="循环模式：整段 / 智能 / 单次"
+                                MouseLeftButtonDown="Loop_Click">
+                            <TextBlock x:Name="LoopText" Text="循环：整段" Style="{StaticResource FlatText}" FontSize="11"/>
+                        </Border>
+                        <Border x:Name="NormPill" Style="{StaticResource ClickPill}" Height="26" Margin="0,0,7,0"
+                                ToolTip="响度归一化：把不同素材拉到接近的响度再试听"
+                                MouseLeftButtonDown="Norm_Click">
+                            <TextBlock x:Name="NormText" Text="归一化" Style="{StaticResource FlatText}" FontSize="11"/>
+                        </Border>
+                        <Border x:Name="VolTrack" Width="74" Height="16" Background="Transparent" Cursor="Hand"
+                                VerticalAlignment="Center" Margin="6,0,10,0" ToolTip="试听音量"
+                                MouseLeftButtonDown="Vol_MouseDown" MouseMove="Vol_MouseMove" MouseLeftButtonUp="Vol_MouseUp">
+                            <Grid>
+                                <Border Height="3" CornerRadius="3" Background="{DynamicResource PanelBorder}"
+                                        VerticalAlignment="Center"/>
+                                <Border x:Name="VolFill" Height="3" CornerRadius="3" Width="60"
+                                        Background="{DynamicResource TextSecondary}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                <Ellipse x:Name="VolThumb" Width="10" Height="10" Fill="{DynamicResource TextPrimary}"
+                                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="55,0,0,0"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="DevicePill" Style="{StaticResource ClickPill}" Height="26"
+                                ToolTip="选择试听输出设备"
+                                MouseLeftButtonDown="Device_Click">
+                            <TextBlock x:Name="DeviceText" Text="扬声器 · 默认" Style="{StaticResource FlatText}" FontSize="11"
+                                       MaxWidth="130" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- 指针跟随高光：跟着鼠标的径向光斑，不吃点击 -->
+        <Ellipse x:Name="PointerGlow" Width="105" Height="105" Opacity="0" IsHitTestVisible="False"
+                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Fill="{DynamicResource PointerGlowBrush}">
+            <Ellipse.RenderTransform>
+                <TranslateTransform x:Name="PointerGlowShift" X="-500" Y="-500"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+        <!-- Toast：轻提示（收藏、打标、扫描完成…），2 秒后自己淡出，不挡鼠标 -->
+
+            <!-- 新手引导（首次启动弹一次）：遮罩 + 高亮挖洞 + 说明卡 -->
+            <Grid x:Name="OnboardLayer" Panel.ZIndex="100" Visibility="Collapsed">
+                <Canvas x:Name="SpotCanvas" IsHitTestVisible="False"/>
+
+                <Border x:Name="OnboardCard" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="0,0,0,150" Width="560" Padding="20,16" CornerRadius="{DynamicResource R12}"
+                        Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource Accent}" BorderThickness="1">
+                    <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.55" Color="Black"/></Border.Effect>
+                    <StackPanel>
+                        <TextBlock x:Name="OnboardTitle" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock x:Name="OnboardBody" FontSize="11.5" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   LineHeight="19" Foreground="{DynamicResource TextSecondary}"/>
+                        <Grid Margin="0,14,0,0">
+                            <TextBlock x:Name="OnboardStep" FontSize="10.5" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiary}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Border x:Name="OnboardSkip" Height="28" CornerRadius="8" Padding="14,0" Margin="0,0,8,0"
+                                        Cursor="Hand" Background="Transparent" BorderThickness="1"
+                                        BorderBrush="{DynamicResource PanelBorder}" MouseLeftButtonDown="OnboardSkip_Click">
+                                    <TextBlock Text="跳过" FontSize="11.5" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </Border>
+                                <Border x:Name="OnboardPrev" Height="28" CornerRadius="8" Padding="14,0" Margin="0,0,8,0"
+                                        Cursor="Hand" Background="Transparent" BorderThickness="1"
+                                        BorderBrush="{DynamicResource PanelBorder}" MouseLeftButtonDown="OnboardPrev_Click">
+                                    <TextBlock Text="上一步" FontSize="11.5" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </Border>
+                                <Border x:Name="OnboardNext" Height="28" CornerRadius="8" Padding="18,0" Cursor="Hand"
+                                        Background="{DynamicResource Accent}" MouseLeftButtonDown="OnboardNext_Click">
+                                    <TextBlock x:Name="OnboardNextText" Text="下一步" FontSize="11.5" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" Foreground="{DynamicResource OnAccent}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,96"
+                Background="{DynamicResource MenuBg}" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                CornerRadius="{DynamicResource R10}" Padding="16,9" Opacity="0" Visibility="Collapsed" IsHitTestVisible="False"
+                Panel.ZIndex="99">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="Black"/>
+            </Border.Effect>
+            <TextBlock x:Name="ToastText" FontSize="12" Foreground="{DynamicResource TextPrimary}"/>
+        </Border>
+    </Grid>
+</Window>
