@@ -136,12 +136,33 @@ public partial class MainWindow
         _selected.Clear();
         _anchor = null;
 
-        ApplyContentLayout(children.Count > 0, false);
+        // P13：库里没有子文件夹时，直接把根目录的音频铺出来。
+        // 否则拖一个"平铺的素材文件夹"进来，用户看到的是「0 个文件夹 · N 个音效」+ 一片空白。
+        if (children.Count == 0)
+        {
+            List<FileRow> rootRows;
+            try { rootRows = _db?.FilesInDir(root) ?? new List<FileRow>(); }
+            catch (Exception ex) { CrashLog("读取库根目录文件失败：" + ex); rootRows = new List<FileRow>(); }
+
+            SetAssets(rootRows);
+            ApplyContentLayout(false, rootRows.Count > 0);
+
+            ContentTitle.Text = lib.Name;
+            ContentStat.Text = rootRows.Count > 0 ? $"{rootRows.Count} 个音效（根目录）" : "0 个音效";
+            LibTab.Text = ShortLabel(lib.Name);
+            if (rootRows.Count == 0) ShowFirstRunEmpty(); else HideEmptyViews();
+
+            ShowCrumbs(TrailFor(null));
+            SyncSidebarSelection(lib.Root);
+            return;
+        }
+
+        ApplyContentLayout(true, false);
 
         ContentTitle.Text = lib.Name;
         ContentStat.Text = $"{children.Count} 个文件夹 · {lib.TotalFiles} 个音效";
         LibTab.Text = ShortLabel(lib.Name);
-        if (children.Count == 0) ShowFirstRunEmpty(); else HideEmptyViews();
+        HideEmptyViews();
 
         ShowCrumbs(TrailFor(null));      // 根目录：只有库名
         SyncSidebarSelection(lib.Root);

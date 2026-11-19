@@ -311,7 +311,13 @@ public partial class MainWindow : Window
 
         // 子文件夹列表里的卡片与树上是同一批对象，计数会自动跟着变；这里只补标题统计
         if (ReferenceEquals(_lib, lib) && _currentFolder is null)
-            ContentStat.Text = $"{lib.Root?.Children.Count ?? 0} 个文件夹 · {lib.TotalFiles} 个音效";
+        {
+            int folders = lib.Root?.Children.Count ?? 0;
+            // P13：没有子文件夹的库，视图里铺的是根目录文件，统计就别再写"0 个文件夹"
+            ContentStat.Text = folders > 0
+                ? $"{folders} 个文件夹 · {lib.TotalFiles} 个音效"
+                : $"{lib.TotalFiles} 个音效（根目录）";
+        }
     }
 
     private static void RefreshCountsRecursive(FolderItem? node, Dictionary<string, int> perDir)
