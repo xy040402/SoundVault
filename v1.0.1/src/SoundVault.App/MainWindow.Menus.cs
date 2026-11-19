@@ -30,6 +30,7 @@ public partial class MainWindow
         try { _db?.SetTags(a.FilePath, list); }
         catch (Exception ex) { CrashLog("写标签失败：" + ex.Message); }
 
+        Services.Log.Info("标签", $"{a.DisplayName} 标签={(list.Count == 0 ? "（空）" : string.Join(",", list))}；新增={hit < 0}，标签={tag}");
         a.SetTags(list);
 
         if (_searchMode) ApplyFilter();
@@ -85,6 +86,7 @@ public partial class MainWindow
             {
                 var col = _currentCollection;
                 if (col is null) return;
+                Services.Log.Info("集合", $"从集合「{col.Name}」移除 {targets.Count} 个");
                 foreach (var it in targets)
                     col.Paths.RemoveAll(p => p.Equals(it.FilePath, StringComparison.OrdinalIgnoreCase));
                 _store.Save();
@@ -366,6 +368,7 @@ public partial class MainWindow
             "序号,文件名,显示名,库,相对路径,时长(秒),采样率,位深,声道,格式,大小(MB),评分,收藏"
         };
 
+        Services.Log.Info("导出", $"开始 目标={targetDir} 数量={items.Count} 保留结构={keepStructure} 模板={template}");
         string libRoot = _lib?.RootPath ?? "";
         int n = 0;
         bool cancelled = false;
@@ -420,6 +423,7 @@ public partial class MainWindow
         var csvName = $"音匣导出清单_{DateTime.Now:yyyyMMdd_HHmm}.csv";
         await File.WriteAllTextAsync(Path.Combine(targetDir, csvName), string.Join("\r\n", rows),
                                      new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        Services.Log.Info("导出", $"完成 导出={n} 个 CSV={csvName} 取消={cancelled} 目标={targetDir}");
         return (n, csvName, cancelled);
     }
     private static string UniquePath(string dir, string baseName, string ext)
@@ -534,6 +538,7 @@ public partial class MainWindow
                 errors.Add($"{item.DisplayName}：{ex.Message}");
             }
         }
+        Services.Log.Info("重命名", $"批量重命名 成功={ok} 失败={errors.Count} 计划={plan.Count}");
         return (ok, errors);
     }
     private void BatchRename()

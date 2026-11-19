@@ -753,6 +753,7 @@ public partial class MainWindow : Window
         _store.For(a.FilePath).Favorite = a.IsFavorite;
         _store.Save();
 
+        Services.Log.Info("收藏", $"{a.DisplayName} 收藏={a.IsFavorite}");
         ShowToast(a.IsFavorite ? "已收藏：" + a.DisplayName : "已取消收藏");
 
         if (_favoritesOnly) ApplyFilter();      // 在收藏页里取消收藏，卡片应该立刻消失
@@ -762,6 +763,7 @@ public partial class MainWindow : Window
     private void SetRating(AssetItem a, int stars)
     {
         a.Rating = Math.Clamp(stars, 0, 5);
+        Services.Log.Info("评分", $"{a.DisplayName} 评分={a.Rating}");
         _store.For(a.FilePath).Rating = a.Rating;
         _store.Save();
     }
@@ -911,6 +913,7 @@ public partial class MainWindow : Window
             added++;
         }
 
+        Services.Log.Info("集合", $"加入集合「{col.Name}」{added} 个，现共 {col.Paths.Count} 个");
         _store.Save();
         RefreshCollections();
         ShowToast(added == 0 ? $"已经在「{col.Name}」里了" : $"已加入「{col.Name}」：{added} 个");

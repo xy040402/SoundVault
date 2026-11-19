@@ -232,6 +232,7 @@ public partial class MainWindow
                 foreach (var it in items) ToggleTag(it, "武侠");
                 if (items.Count > 0) ToggleTag(items[0], "剑");
                 if (items.Count > 1) SetRating(items[1], 4);
+                if (items.Count > 0) ToggleFavorite(items[0]);
                 if (items.Count > 2) SetRating(items[2], 2);
 
                 sb.AppendLine($"tagged={items.Count} first_tags={string.Join(",", items[0].Tags)}");
