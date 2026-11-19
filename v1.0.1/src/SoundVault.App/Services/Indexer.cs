@@ -171,8 +171,44 @@ public sealed class Indexer
         var info = WavReader.TryRead(path);
         if (info is null)
         {
+            // 不是 RIFF/WAVE（AIFF、RF64、老式封装…）→ 用系统解码器读元信息，至少让卡片有时长
+            var kind = AudioProbe.Sniff(path);
+
+            // AIFF 自己算（系统解码器不可靠），其余容器才交给 MediaFoundation
+            if ((kind == AudioProbe.Container.Aiff || kind == AudioProbe.Container.Aifc) &&
+                AiffReader.TryReadInfo(path, out var ac, out var ar, out var abits, out var ams))
+            {
+                row.Channels = ac;
+                row.SampleRate = ar;
+                row.Bits = abits;
+                row.DurationMs = ams;
+                row.Ok = true;
+                try
+                {
+                    using var aiff = new AiffReader(path);
+                    row.Peaks = WavReader.ComputePeaksFromReader(aiff);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("解码", "AIFF 波形计算失败 " + path, ex);
+                }
+                Log.Info("解码", $"AIFF 已解析 {path} 时长={ams:0}ms 波形={(row.Peaks is null ? "无" : row.Peaks.Length + " 点")}");
+                return row;
+            }
+
+            if (AudioProbe.TryReadInfo(path, out var sr2, out var ch2, out var bits2, out var ms2))
+            {
+                row.SampleRate = sr2;
+                row.Channels = ch2;
+                row.Bits = bits2;
+                row.DurationMs = ms2;
+                row.Ok = true;
+                Log.Info("解码", $"非 WAV 用系统解码器解析 container={AudioProbe.Describe(kind)} {path}");
+                return row;
+            }
+
             row.Ok = false;
-            Log.Warn("解码", $"头解析失败（无法识别为 RIFF/WAVE）{path}");
+            Log.Warn("解码", $"解析失败（{AudioProbe.Describe(kind)}）{path}");
             return row;
         }
 

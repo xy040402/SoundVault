@@ -48,6 +48,9 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
+    /// <summary>最近一次播放失败的原因（null = 正常）。</summary>
+    public string? LastError { get; private set; }
+
     public event Action? PlaybackEnded;
 
     public int DeviceSampleRate => _deviceRate;
@@ -134,7 +137,12 @@ public sealed class AudioEngine : IDisposable
     public bool Play(string path, bool loop, double startMs = 0, int fadeInMs = 40, double? endMs = null)
     {
         var clip = GetClip(path);
-        if (clip is null) return false;
+        if (clip is null)
+        {
+            LastError = string.IsNullOrWhiteSpace(AudioClip.LastError) ? "无法解码这个文件" : AudioClip.LastError;
+            return false;
+        }
+        LastError = null;
 
         bool willLoop = loop && Mode != LoopMode.Once;
         StopAll(fadeMs: 45);
@@ -337,7 +345,7 @@ public sealed class AudioEngine : IDisposable
     {
         var sb = new StringBuilder();
         var clip = AudioClip.Load(path);
-        if (clip is null) return "SELFTEST: LOAD FAILED " + path;
+        if (clip is null) return "SELFTEST: LOAD FAILED " + path + " | 原因: " + (string.IsNullOrEmpty(AudioClip.LastError) ? "未知" : AudioClip.LastError);
 
         sb.AppendLine($"clip   : {clip.SampleRate} Hz / {clip.Channels} ch / {clip.DurationMs:0.0} ms / {clip.FrameCount} frames");
         sb.AppendLine($"norm   : gain={clip.NormalizeGain:0.000} (按 LUFS 拉到 -18 LUFS)");

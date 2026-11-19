@@ -1,4 +1,5 @@
 using System.IO;
+using NAudio.Wave;
 
 namespace SoundVault.App.Audio;
 
@@ -96,6 +97,58 @@ public static class WavReader
         }
     }
 
+    /// <summary>
+    /// 从任意 WaveStream 算 512 根量化峰值（给 AIFF 这类非 RIFF 容器用）。
+    /// 整段读一遍，和 WAV 路径的成本一致；将来做两阶段索引时会改成后台补算。
+    /// </summary>
+    public static byte[]? ComputePeaksFromReader(WaveStream reader, int points = PeakPoints)
+    {
+        try
+        {
+            var sp = reader.ToSampleProvider();
+            int channels = sp.WaveFormat.Channels;
+            if (channels <= 0) return null;
+
+            long totalFrames = reader.Length / Math.Max(1, reader.WaveFormat.BlockAlign);
+            if (totalFrames <= 0) totalFrames = 1;
+
+            int n = (int)Math.Min(points, Math.Max(8, totalFrames));
+            var max = new float[n];
+
+            var buf = new float[16384];
+            long frame = 0;
+            int read;
+            while ((read = sp.Read(buf, 0, buf.Length)) > 0)
+            {
+                int frames = read / channels;
+                for (int f = 0; f < frames; f++)
+                {
+                    long pi = (frame + f) * n / totalFrames;
+                    if (pi >= n) pi = n - 1;
+                    float m = max[pi];
+                    for (int c = 0; c < channels; c++)
+                    {
+                        float v = Math.Abs(buf[f * channels + c]);
+                        if (v > m) m = v;
+                    }
+                    max[pi] = m;
+                }
+                frame += frames;
+            }
+
+            var outBytes = new byte[n];
+            for (int i = 0; i < n; i++)
+            {
+                float v = Math.Clamp(max[i], 0f, 1f);
+                outBytes[i] = (byte)(v * 255);
+            }
+            return outBytes;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     /// <summary>波形柱数：索引里统一存 512 根，画的时候按像素宽度降采样。</summary>
     public const int PeakPoints = 512;
 

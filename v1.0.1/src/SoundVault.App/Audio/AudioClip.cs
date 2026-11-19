@@ -17,12 +17,19 @@ public sealed class AudioClip
     /// <summary>响度归一化增益：按 RMS 拉到约 -18 dBFS，限制在 0.2×–5×。</summary>
     public float NormalizeGain { get; private set; } = 1f;
 
+    /// <summary>最近一次加载失败的原因（给界面提示用）。</summary>
+    public static string LastError { get; private set; } = "";
+
     public static AudioClip? Load(string path)
     {
         try
         {
             using var reader = CreateReader(path);
-            if (reader is null) return null;
+            if (reader is null)
+            {
+                LastError = "打不开（" + AudioProbe.Describe(AudioProbe.Sniff(path)) + "，没有可用的解码器）";
+                return null;
+            }
 
             var sp = reader.ToSampleProvider();
             int channels = sp.WaveFormat.Channels;
@@ -36,7 +43,11 @@ public sealed class AudioClip
                 for (int i = 0; i < n; i++) all.Add(buf[i]);
                 if (all.Count > 40_000_000) break;
             }
-            if (all.Count == 0) return null;
+            if (all.Count == 0)
+            {
+                LastError = "文件里没有音频数据（长度为 0）";
+                return null;
+            }
 
             var data = all.ToArray();
             if (channels > 2)
@@ -63,6 +74,7 @@ public sealed class AudioClip
         }
         catch (Exception ex)
         {
+            LastError = FriendlyError(ex);
             Services.Log.Warn("播放", "解码失败 " + path, ex);
             return null;
         }
@@ -72,15 +84,59 @@ public sealed class AudioClip
         private static float ComputeNormalizeGain(float[] data, int rate, int channels) =>
             Services.Loudness.GainFor(data, rate, Math.Max(1, channels));
 
+    /// <summary>把各种底层异常翻译成用户能看懂的一句话。</summary>
+    private static string FriendlyError(Exception ex)
+    {
+        if (ex is FileNotFoundException) return "文件不存在（可能被移动或删除）";
+        if (ex is UnauthorizedAccessException) return "没有权限读取这个文件";
+        if (ex is IOException) return "文件被占用或读取失败：" + ex.Message;
+        if (ex.GetType().Name == "COMException") return "不是可识别的音频文件（系统解码器不支持这种格式）";
+        if (ex is InvalidDataException) return "文件内容不完整或格式不对：" + ex.Message;
+        return ex.Message;
+    }
+
+    /// <summary>
+    /// 按内容而不是扩展名选解码器。
+    /// RIFF/RF64 用 WaveFileReader；AIFF/AIFC 与其它容器交给系统解码器（MediaFoundation）。
+    /// </summary>
     private static WaveStream? CreateReader(string path)
     {
-        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-        return ext switch
+        var kind = AudioProbe.Sniff(path);
+
+        if (kind == AudioProbe.Container.Riff || kind == AudioProbe.Container.Rf64)
         {
-            ".wav" or ".aif" or ".aiff" => new WaveFileReader(path),
-            ".mp3" => new Mp3FileReader(path),
-            _ => new MediaFoundationReader(path)
-        };
+            try
+            {
+                return new WaveFileReader(path);
+            }
+            catch (Exception ex)
+            {
+                Services.Log.Warn("播放", $"WaveFileReader 打不开（{AudioProbe.Describe(kind)}），改试系统解码器 {path}", ex);
+            }
+        }
+
+        if (kind == AudioProbe.Container.Aiff || kind == AudioProbe.Container.Aifc)
+        {
+            // 系统解码器对 AIFF 不可靠（本机 MF 直接报 0xC00D36C4），优先用自带解析
+            try
+            {
+                return new AiffReader(path);
+            }
+            catch (Exception ex)
+            {
+                Services.Log.Warn("播放", "AIFF 自带解析失败，改试系统解码器 " + path, ex);
+                return new MediaFoundationReader(path);
+            }
+        }
+
+        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        if (ext == ".mp3")
+        {
+            try { return new Mp3FileReader(path); }
+            catch (Exception ex) { Services.Log.Warn("播放", "Mp3FileReader 打不开，改试系统解码器 " + path, ex); }
+        }
+
+        return new MediaFoundationReader(path);
     }
 }
 

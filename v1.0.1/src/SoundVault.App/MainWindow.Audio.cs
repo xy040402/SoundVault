@@ -144,8 +144,22 @@ public partial class MainWindow
     {
         _hoverTimer.Stop();
         if (_hoverItem is null || _pinned is not null) return;
-        if (!_audio.Play(_hoverItem.FilePath, loop: true)) return;
+        if (!_audio.Play(_hoverItem.FilePath, loop: true))
+        {
+            ReportPlayFailure(_hoverItem);
+            return;
+        }
         SetPlaying(_hoverItem);
+    }
+
+    /// <summary>播放失败时把原因说出来，别静默没反应（v1.0.1）。</summary>
+    private void ReportPlayFailure(AssetItem? item)
+    {
+        string reason = _audio.LastError ?? "无法解码这个文件";
+        string name = item?.DisplayName ?? "";
+        SoundVault.App.Services.Log.Warn("播放", $"播放失败 {name} 原因={reason}");
+        PlayerLabel.Text = "无法播放：" + reason;
+        ShowToast("无法播放：" + reason);
     }
     private void Card_MouseLeave(object sender, MouseEventArgs e)
     {
@@ -174,7 +188,14 @@ public partial class MainWindow
         }
 
         _pinned = target;
-        _audio.Play(target.FilePath, loop: true);
+        if (!_audio.Play(target.FilePath, loop: true))
+        {
+            _pinned = null;
+            ReportPlayFailure(target);
+            UpdatePlayIcon(false);
+            SyncPinFlags();
+            return;
+        }
         SetPlaying(target);
         UpdatePlayIcon(true);
         SyncPinFlags();
