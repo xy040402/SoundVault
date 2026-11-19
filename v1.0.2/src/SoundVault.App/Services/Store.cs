@@ -60,6 +60,12 @@ public sealed class Store
     /// <summary>Windows 11 云母（Mica）底板；系统不支持会自动退回。</summary>
     public bool Mica { get; set; }
 
+    /// <summary>滚轮是否走平滑动画（关掉就是一步到位）。</summary>
+    public bool ScrollAnim { get; set; } = true;
+
+    /// <summary>滚动动画时长（毫秒）。100 = 快，140 = 标准，220 = 缓。</summary>
+    public int ScrollAnimMs { get; set; } = 140;
+
     private static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true,

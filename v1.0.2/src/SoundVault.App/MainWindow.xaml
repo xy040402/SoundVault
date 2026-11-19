@@ -774,7 +774,7 @@
                        Foreground="{DynamicResource TextTertiary}" Margin="0,0,0,2"/>
 
                         <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      PreviewMouseWheel="Sidebar_PreviewMouseWheel">
+                                      PreviewMouseWheel="Sidebar_PreviewMouseWheel" ScrollChanged="Sidebar_ScrollChanged">
                             <StackPanel Margin="8,10,8,6">
                                 <TextBlock Text="快捷入口" FontSize="10" Margin="8,0,0,6"
                                            Foreground="{DynamicResource TextTertiary}"/>

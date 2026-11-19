@@ -243,8 +243,8 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
     public void PageLeft() => SetHorizontalOffset(_offset.X - _viewport.Width);
     public void PageRight() => SetHorizontalOffset(_offset.X + _viewport.Width);
 
-    public void MouseWheelUp() => SetVerticalOffset(_offset.Y - CellHeight);
-    public void MouseWheelDown() => SetVerticalOffset(_offset.Y + CellHeight);
+    public void MouseWheelUp() => Wheel(-CellHeight);
+    public void MouseWheelDown() => Wheel(CellHeight);
     public void MouseWheelLeft() => SetHorizontalOffset(_offset.X - CellWidth);
     public void MouseWheelRight() => SetHorizontalOffset(_offset.X + CellWidth);
 
@@ -254,11 +254,50 @@ public sealed class VirtualizingWrapPanel : VirtualizingPanel, IScrollInfo
     {
         double maxY = Math.Max(0, _extent.Height - _viewport.Height);
         double y = Math.Clamp(offset, 0, maxY);
+
+        // 不是动画帧写的 → 说明是拖滚动条 / 程序滚动，动画让路
+        if (!_selfScroll) _smooth?.SyncFromOutside(y);
+
         if (Math.Abs(y - _offset.Y) < 0.1) return;
 
         _offset.Y = y;
         InvalidateMeasure();
         ScrollOwner?.InvalidateScrollInfo();
+    }
+
+    // ── 平滑滚动（P7）──────────────────────────────────────────────
+    private Scroller? _smooth;
+    private bool _selfScroll;
+
+    private Scroller Smooth => _smooth ??=
+        new Scroller(AnimatedApply, () => Math.Max(0, _extent.Height - _viewport.Height));
+
+    private void Wheel(double delta)
+    {
+        if (!SmoothScroll.Active)
+        {
+            SetVerticalOffset(_offset.Y + delta);
+            return;
+        }
+        Smooth.Value = _offset.Y;
+        Smooth.ScrollBy(delta);
+    }
+
+    /// <summary>动画帧里真正改偏移：不算"外部改动"，不去打断动画。</summary>
+    private void AnimatedApply(double y)
+    {
+        double maxY = Math.Max(0, _extent.Height - _viewport.Height);
+        double v = Math.Clamp(y, 0, maxY);
+        if (Math.Abs(v - _offset.Y) < 0.05) return;
+
+        _selfScroll = true;
+        try
+        {
+            _offset.Y = v;
+            InvalidateArrange();
+            ScrollOwner?.InvalidateScrollInfo();
+        }
+        finally { _selfScroll = false; }
     }
 
     public Rect MakeVisible(Visual visual, Rect rectangle)

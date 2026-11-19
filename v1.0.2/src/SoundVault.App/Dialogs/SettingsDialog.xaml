@@ -311,6 +311,25 @@
                                 </StackPanel>
                             </Border>
 
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="滚动" Style="{StaticResource CardTitle}"/>
+                <CheckBox x:Name="ScrollAnimBox" Content="平滑滚动（滚轮不再一步跳到位）" Click="ScrollAnim_Click"
+                          Style="{StaticResource Check}"/>
+                <StackPanel x:Name="SpeedRow" Orientation="Horizontal" Margin="0,10,0,0">
+                    <Border x:Name="SpeedFast" Style="{StaticResource Btn}" Margin="0,0,8,0" MouseLeftButtonDown="Speed_Click">
+                        <TextBlock x:Name="SpeedFastText" Text="快 100ms" Style="{StaticResource BtnText}"/>
+                    </Border>
+                    <Border x:Name="SpeedStd" Style="{StaticResource Btn}" Margin="0,0,8,0" MouseLeftButtonDown="Speed_Click">
+                        <TextBlock x:Name="SpeedStdText" Text="标准 140ms" Style="{StaticResource BtnText}"/>
+                    </Border>
+                    <Border x:Name="SpeedSlow" Style="{StaticResource Btn}" MouseLeftButtonDown="Speed_Click">
+                        <TextBlock x:Name="SpeedSlowText" Text="缓 220ms" Style="{StaticResource BtnText}"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <TextBlock Text="新手引导" Style="{StaticResource CardTitle}"/>

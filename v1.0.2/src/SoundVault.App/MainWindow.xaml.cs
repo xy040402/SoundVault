@@ -28,7 +28,14 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, LibraryItem> _libs = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly AudioEngine _audio = new();
-    private readonly Store _store = Store.Load();
+    private readonly Store _store = LoadStore();
+    private static Store LoadStore()
+    {
+        var s = Store.Load();
+        Controls.SmoothScroll.Enabled = s.ScrollAnim;
+        Controls.SmoothScroll.DurationMs = s.ScrollAnimMs > 0 ? s.ScrollAnimMs : 140;
+        return s;
+    }
     private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
     private readonly DispatcherTimer _scanPillTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
     private bool _frameHooked;
@@ -1045,13 +1052,42 @@ public partial class MainWindow : Window
     /// 侧栏滚轮：里面的 ListBox 各自带一个 ScrollViewer，会把滚轮事件吃掉（哪怕自己没东西可滚），
     /// 所以外层 ScrollViewer 收不到。这里用 Preview 抢在它们前面，自己滚。
     /// </summary>
+    private Scroller? _sidebarScroller;
+
     private void Sidebar_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (sender is not ScrollViewer sv) return;
 
         // 120 = 一格；一格滚 48px，跟系统习惯接近
-        sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta * 0.4);
+        double delta = -e.Delta * 0.4;
+
+        if (!SmoothScroll.Active)
+        {
+            sv.ScrollToVerticalOffset(sv.VerticalOffset + delta);
+            e.Handled = true;
+            return;
+        }
+
+        _sidebarScroller ??= new Scroller(
+            v => sv.ScrollToVerticalOffset(v),
+            () => Math.Max(0, sv.ExtentHeight - sv.ViewportHeight));
+
+        _sidebarScroller.Value = sv.VerticalOffset;     // 拖过滚动条就以实际位置为准
+        _sidebarScroller.ScrollBy(delta);
         e.Handled = true;
+    }
+
+    /// <summary>侧栏被拖滚动条 / 程序滚动时，让动画让路。</summary>
+    private void Sidebar_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv || _sidebarScroller is null) return;
+        if (Math.Abs(e.VerticalChange) < 0.01) return;
+
+        // 动画自己滚出来的变化不算"外部改动"，否则每次滚轮都会把自己打断
+        if (_sidebarScroller.IsRunning
+            && Math.Abs(sv.VerticalOffset - _sidebarScroller.LastApplied) < 1.5) return;
+
+        _sidebarScroller.SyncFromOutside(sv.VerticalOffset);
     }
     // ── 库管理（v0.9）：重命名 / 移除 / 重新扫描 ─────────────
     /// <summary>点库行右侧的「⋯」：重命名 / 重新扫描 / 移除。</summary>
@@ -2071,6 +2107,12 @@ private void SettingsBtn_Click(object sender, RoutedEventArgs e, int page = 0)
         _store.Glass = dlg.GlassValue;
         _store.Radius = dlg.RadiusValue;
         _store.Mica = dlg.MicaEnabled;
+
+        // 滚动动画（P7）：保存即生效，不用重启
+        _store.ScrollAnim = dlg.SmoothScrollEnabled;
+        _store.ScrollAnimMs = dlg.SmoothScrollMs;
+        SoundVault.App.Controls.SmoothScroll.Enabled = _store.ScrollAnim;
+        SoundVault.App.Controls.SmoothScroll.DurationMs = _store.ScrollAnimMs;
         SurfaceTheme.Apply(_store.Glass, _store.Radius);
         ApplyMica(_store.Mica);
         _store.Save();

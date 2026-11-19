@@ -28,6 +28,10 @@ public partial class SettingsDialog : Window
     /// <summary>外观：主色（HEX）、面板强度、圆角、云母。取消时保持原值。</summary>
     public string AccentHex => _accentHex;
     private string _accentHex = "";
+    public bool SmoothScrollEnabled => ScrollAnimBox.IsChecked == true;
+    public int SmoothScrollMs => _animMs;
+    private int _animMs = 140;
+
     public double GlassValue => GlassSlider.Value;
     public double RadiusValue => RadiusSlider.Value;
     public bool MicaEnabled => MicaBox.IsChecked == true;
@@ -84,6 +88,9 @@ public partial class SettingsDialog : Window
         GlassText.Text = ((int)Math.Round(_startGlass * 100)) + "%";
         RadiusText.Text = _startRadius.ToString("0.00") + "×";
         MicaBox.IsChecked = store.Mica;
+        ScrollAnimBox.IsChecked = store.ScrollAnim;
+        _animMs = store.ScrollAnimMs > 0 ? store.ScrollAnimMs : 140;
+        UpdateSpeedPills();
 
         PathText.Text = "配置：store.json（库/评分/标签归属/外观）\n索引：index.db（波形峰值与元信息，删了会自动重建）\n\n" + AppPaths.DataDir;
         PortableText.Text = AppPaths.ModeText;
@@ -101,6 +108,32 @@ public partial class SettingsDialog : Window
         };
     }
 
+    private void ScrollAnim_Click(object sender, System.Windows.RoutedEventArgs e) => UpdateSpeedPills();
+
+    private void Speed_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender == SpeedFast) _animMs = 100;
+        else if (sender == SpeedStd) _animMs = 140;
+        else _animMs = 220;
+        UpdateSpeedPills();
+    }
+
+    /// <summary>三档速度：选中的那颗亮主色。</summary>
+    private void UpdateSpeedPills()
+    {
+        foreach (var (border, text, ms) in new[]
+                 {
+                     (SpeedFast, SpeedFastText, 100),
+                     (SpeedStd, SpeedStdText, 140),
+                     (SpeedSlow, SpeedSlowText, 220)
+                 })
+        {
+            bool on = ms == _animMs;
+            text.SetResourceReference(TextBlock.ForegroundProperty, on ? "OnAccent" : "TextSecondary");
+            border.SetResourceReference(Border.BackgroundProperty, on ? "Accent" : "SearchBg");
+        }
+        if (SpeedRow is not null) SpeedRow.IsEnabled = ScrollAnimBox.IsChecked == true;
+    }
     public static SettingsDialog? Open(Window? owner, Store store, bool isDark, Action<bool>? onThemeChanged, int page = 0)
     {
         var dlg = new SettingsDialog(store, isDark, onThemeChanged) { Owner = owner };
