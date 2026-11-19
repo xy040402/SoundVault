@@ -127,15 +127,15 @@
                     <StackPanel x:Name="PageWelcome" Visibility="Collapsed">
                         <TextBlock Text="欢迎使用 音匣 SoundVault" Style="{StaticResource PageTitle}"/>
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource PageHint}"
-                                   Text="安装前先说明三件事，都是你会在意的："/>
+                                   Text="安装前注意事项："/>
 
                         <StackPanel Margin="0,14,0,0">
                             <TextBlock Foreground="#FFC8D0DE" FontSize="11" TextWrapping="Wrap"
-                                       Text="• 只建索引，不移动、不复制你的音效文件"/>
+                                       Text="• 只给音效建索引，不移动、不复制原文件"/>
                             <TextBlock Foreground="#FFC8D0DE" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"
-                                       Text="• 单文件程序，不需要预装 .NET，不联网"/>
+                                       Text="• 单文件程序，不用预装 .NET，不联网"/>
                             <TextBlock Foreground="#FFC8D0DE" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"
-                                       Text="• 卸载默认保留评分、标签和集合；想清干净可以在卸载时勾选"/>
+                                       Text="• 卸载默认保留评分、标签、集合；要清干净在卸载时勾选"/>
                         </StackPanel>
 
                         <TextBlock Margin="0,16,0,0" Style="{StaticResource PageHint}"
