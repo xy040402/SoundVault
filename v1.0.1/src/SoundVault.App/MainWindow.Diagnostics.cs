@@ -288,6 +288,25 @@ public partial class MainWindow
 
         try { File.WriteAllText(log, sb.ToString(), System.Text.Encoding.UTF8); } catch { }
     }
+    /// <summary>验收钩子：SV_PURGE_TEST=1 时对第一个库跑一遍"删库清理"，结果写 sv-purge.txt。</summary>
+    private void RunPurgeTestIfRequested()
+    {
+        if (Environment.GetEnvironmentVariable("SV_PURGE_TEST") != "1") return;
+        if (_lib is null) { TryWritePurge("NO_LIB"); return; }
+
+        try
+        {
+            var r = PurgeLibraryData(_lib.RootPath);
+            TryWritePurge($"assets={r.Assets} played={r.Played} used={r.Used} colItems={r.ColItems} tags={r.Tags}");
+        }
+        catch (Exception ex) { TryWritePurge("FAILED: " + ex.Message); }
+    }
+
+    private static void TryWritePurge(string text)
+    {
+        try { File.WriteAllText(Path.Combine(Path.GetTempPath(), "sv-purge.txt"), text, System.Text.Encoding.UTF8); } catch { }
+    }
+
     private void DumpDbIfRequested()
     {
         if (Environment.GetEnvironmentVariable("SV_DB_DUMP") != "1" || _db is null) return;

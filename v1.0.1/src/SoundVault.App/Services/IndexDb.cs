@@ -453,6 +453,34 @@ public sealed class IndexDb : IDisposable
         }
         return list;
     }
+    /// <summary>删库时把这个目录下的标签关联一起删掉，并清理没人用的标签名。</summary>
+    public int DropTagsUnder(string dir)
+    {
+        try
+        {
+            string prefix = dir.TrimEnd('\\') + "\\";
+            string esc = prefix.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+            lock (_gate)
+            {
+                int n;
+                using (var cmd = _cn.CreateCommand())
+                {
+                    cmd.CommandText = "DELETE FROM asset_tags WHERE path LIKE $p ESCAPE '\';";
+                    cmd.Parameters.AddWithValue("$p", esc + "%");
+                    n = cmd.ExecuteNonQuery();
+                }
+                using (var cmd2 = _cn.CreateCommand())
+                {
+                    cmd2.CommandText = "DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM asset_tags);";
+                    cmd2.ExecuteNonQuery();
+                }
+                return n;
+            }
+        }
+        catch { return 0; }
+    }
+
     /// <summary>从库里移除整个素材包（重连 / 移除库时用）。</summary>
     public void DropLibrary(string lib) =>
         Exec("DELETE FROM files WHERE lib=$lib;".Replace("$lib", "'" + lib.Replace("'", "''") + "'"));

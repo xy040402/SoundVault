@@ -240,6 +240,15 @@ public partial class MainWindow
     }
     private void SmartList_RightClick(object sender, MouseButtonEventArgs e)
     {
+        // 右键先把鼠标下面那一行选中，否则点没选中的行什么都不弹（和集合一样的坑）
+        if (FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject) is { DataContext: SmartFolder hit })
+        {
+            bool old = _suppressPickers;
+            _suppressPickers = true;
+            try { SmartList.SelectedItem = hit; }
+            finally { _suppressPickers = old; }
+        }
+
         if (SmartList.SelectedItem is not SmartFolder f) return;
         e.Handled = true;
 
@@ -363,6 +372,24 @@ public partial class MainWindow
     {
         _ = ScanLibrariesAsync(new[] { node.Path });
     }
+    /// <summary>
+    /// 删库时把这个库的用户数据一起清掉：已用/播放记录、评分收藏、标签关联、集合引用。
+    /// 不清的话，重新导入同一个文件夹会记着上次的状态 —— 用户看到的"已用"其实是脏数据。
+    /// </summary>
+    private (int Assets, int Played, int Used, int ColItems, int Tags) PurgeLibraryData(string root)
+    {
+        var purged = _store.PurgeLibrary(root);
+
+        int tags = 0;
+        try { tags = _db?.DropTagsUnder(Indexer.Normalize(root)) ?? 0; }
+        catch (Exception ex) { Services.Log.Warn("删库", "清标签失败", ex); }
+
+        Services.Log.Info("删库",
+            $"清理数据 评分收藏={purged.Assets} 播放记录={purged.Played} 已用={purged.Used} " +
+            $"集合引用={purged.CollectionItems} 标签关联={tags}");
+
+        return (purged.Assets, purged.Played, purged.Used, purged.CollectionItems, tags);
+    }
     private void RemoveLibrary(FolderItem node)
     {
         var name = _store.NameOf(node.Path);
@@ -371,6 +398,7 @@ public partial class MainWindow
         MessageDialog.Show(this, "移除这个库", tooltip, "移除", () =>
         {
             Services.Log.Info("删库", $"移除库 name={name} path={node.Path}（磁盘文件不动）");
+            PurgeLibraryData(node.Path);
             _store.Libraries.RemoveAll(p => p.Equals(node.Path, StringComparison.OrdinalIgnoreCase));
             _store.LibraryNames.Remove(node.Path);
             _store.Save();

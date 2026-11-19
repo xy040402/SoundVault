@@ -823,7 +823,7 @@
                                                Foreground="{DynamicResource TextTertiary}"/>
                                     <TextBlock x:Name="SmartEmptyHint" Text="搜索后点「保存搜索」" FontSize="10" Margin="10,2,0,0"
                                                Foreground="{DynamicResource TextTertiary}" TextWrapping="Wrap"/>
-                                    <ListBox x:Name="SmartList" Background="Transparent" BorderThickness="0" MouseRightButtonDown="SmartList_RightClick"
+                                    <ListBox x:Name="SmartList" Background="Transparent" BorderThickness="0" PreviewMouseRightButtonDown="SmartList_RightClick"
                                              Focusable="False" ItemContainerStyle="{StaticResource SideItem}"
                                              SelectionChanged="SmartList_SelectionChanged"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">

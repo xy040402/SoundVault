@@ -128,6 +128,30 @@ public sealed class Store
         return new Store();
     }
 
+    /// <summary>
+    /// 删库时把这个库名下的用户数据一起清掉：评分/收藏、已用/播放在、以及集合里的引用。
+    /// 不清的话，重新导入同一个文件夹会"记得"上次的已用和评分 —— 用户看到的是脏数据。
+    /// </summary>
+    public (int Assets, int Played, int Used, int CollectionItems) PurgeLibrary(string root)
+    {
+        string prefix;
+        try { prefix = Path.GetFullPath(root).TrimEnd('\\') + "\\"; }
+        catch { prefix = root.TrimEnd('\\') + "\\"; }
+
+        bool Under(string p) => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+
+        int assets = 0, played = 0, used = 0, colItems = 0;
+
+        foreach (var k in Assets.Keys.Where(Under).ToList()) { Assets.Remove(k); assets++; }
+        foreach (var k in PlayedAt.Keys.Where(Under).ToList()) { PlayedAt.Remove(k); played++; }
+        foreach (var k in UsedAt.Keys.Where(Under).ToList()) { UsedAt.Remove(k); used++; }
+
+        foreach (var c in Collections) colItems += c.Paths.RemoveAll(Under);
+
+        Save();
+        return (assets, played, used, colItems);
+    }
+
     public void Save()
     {
         try
