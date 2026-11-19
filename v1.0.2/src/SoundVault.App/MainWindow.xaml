@@ -997,29 +997,36 @@
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.45" Color="#FF000000"/>
                             </Border.Effect>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="ScanText" Text="正在建立索引…" FontSize="11.5"
-                                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                                <Border Width="150" Height="3" CornerRadius="2" Margin="12,0,0,0"
-                                        VerticalAlignment="Center" Background="{DynamicResource Divider}">
-                                    <!-- Width 必须写死：没宽度时 DesiredSize=0，ScaleX 放大也还是 0，进度条看着永远不动 -->
-                                    <Border x:Name="ScanFill" HorizontalAlignment="Left" CornerRadius="2" Width="150"
-                                            Background="{DynamicResource Accent}" RenderTransformOrigin="0,0.5">
-                                        <Border.RenderTransform>
-                                            <ScaleTransform x:Name="ScanScale" ScaleX="0"/>
-                                        </Border.RenderTransform>
-                                    </Border>
-                                </Border>
-                                <!-- 取消：扫描支持 CancellationToken，这里接上（v1.0.1 / P1） -->
-                                <Border x:Name="ScanCancel" Margin="12,0,0,0" Padding="8,2" CornerRadius="6" Cursor="Hand"
-                                        Background="Transparent" BorderThickness="1" BorderBrush="{DynamicResource OverlayBorder}"
-                                        VerticalAlignment="Center">
-                                    <!-- 点击挂在 TextBlock 上：Border 不进 UIA 树，自动化/无障碍点不到 -->
-                                    <TextBlock x:Name="ScanCancelText" Text="取消" FontSize="11" Background="Transparent"
-                                               Foreground="{DynamicResource TextSecondary}" Cursor="Hand"
-                                               MouseLeftButtonDown="ScanCancel_Click"/>
-                                </Border>
-                            </StackPanel>
+                                <StackPanel>
+                                    <!-- 第一行：在干什么 + 能不能继续操作 -->
+                                    <TextBlock x:Name="ScanHead" Text="正在建立索引…" FontSize="11.5"
+                                               Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- 第二行：数字 / 百分比 / 剩余时间 / 文件名 / 进度条 / 取消 -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                        <TextBlock x:Name="ScanText" Text="" FontSize="10.5"
+                                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                        <Border Width="150" Height="3" CornerRadius="2" Margin="10,0,0,0"
+                                                VerticalAlignment="Center" Background="{DynamicResource Divider}">
+                                            <!-- Width 必须写死：没宽度时 DesiredSize=0，ScaleX 放大也还是 0，进度条看着永远不动 -->
+                                            <Border x:Name="ScanFill" HorizontalAlignment="Left" CornerRadius="2" Width="150"
+                                                    Background="{DynamicResource Accent}" RenderTransformOrigin="0,0.5">
+                                                <Border.RenderTransform>
+                                                    <ScaleTransform x:Name="ScanScale" ScaleX="0"/>
+                                                </Border.RenderTransform>
+                                            </Border>
+                                        </Border>
+                                        <!-- 取消：扫描支持 CancellationToken，这里接上 -->
+                                        <Border x:Name="ScanCancel" Margin="10,0,0,0" Padding="8,2" CornerRadius="6" Cursor="Hand"
+                                                Background="Transparent" BorderThickness="1" BorderBrush="{DynamicResource OverlayBorder}"
+                                                VerticalAlignment="Center">
+                                            <!-- 点击挂在 TextBlock 上：Border 不进 UIA 树，自动化/无障碍点不到 -->
+                                            <TextBlock x:Name="ScanCancelText" Text="取消" FontSize="11" Background="Transparent"
+                                                       Foreground="{DynamicResource TextSecondary}" Cursor="Hand"
+                                                       MouseLeftButtonDown="ScanCancel_Click"/>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                         </Border>
 
                         <!-- 空态：第一次用（没有任何库） -->

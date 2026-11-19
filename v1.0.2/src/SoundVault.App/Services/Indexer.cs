@@ -107,7 +107,7 @@ public sealed class Indexer
         foreach (var f in files) seen.Add(f.Path);
 
         if (work.Count > 0)
-            progress?.Report(new ScanProgress { Phase = "正在读取音频头与波形", Total = work.Count });
+            progress?.Report(new ScanProgress { Phase = "正在读取音频头", Total = work.Count });
 
         // ③ 并行解析新文件（纯计算，不碰数据库）
         var rows = new ConcurrentBag<FileRow>();
@@ -140,7 +140,7 @@ public sealed class Indexer
                     lastReport.Restart();
                     progress?.Report(new ScanProgress
                     {
-                        Phase = "正在读取音频头与波形",
+                        Phase = "正在读取音频头",
                         Done = n,
                         Total = work.Count,
                         Current = Path.GetFileName(item.Path)

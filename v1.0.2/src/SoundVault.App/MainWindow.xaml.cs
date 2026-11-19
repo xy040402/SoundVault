@@ -708,23 +708,37 @@ public partial class MainWindow : Window
         _scanFraction = frac;
         ScanScale.ScaleX = frac;
 
-        var sb = new System.Text.StringBuilder(p.Phase);
+        // 第一行：在做什么 + 能不能继续操作（补波形是后台活，要明确告诉用户）
+        ScanHead.Text = p.Phase switch
+        {
+            "正在补齐波形" => "正在补齐波形图，您可以继续操作",
+            "正在枚举文件" => "正在枚举文件，请稍候",
+            "已找到文件" => "正在比对索引…",
+            "正在比对索引" => "正在比对索引…",
+            "正在读取音频头" => "正在读取音频头（只读文件头，很快）",
+            "正在写入索引" => "正在写入索引…",
+            "完成" => "完成",
+            _ => p.Phase
+        };
+
+        // 第二行：数字 / 百分比 / 剩余时间 / 文件名
+        var sb = new System.Text.StringBuilder();
 
         if (p.Total > 0)
         {
-            sb.Append($"  {p.Done:N0} / {p.Total:N0}");
-            sb.Append($"  {frac * 100:0}%");
+            sb.Append($"{p.Done:N0} / {p.Total:N0}");
+            sb.Append($"　{frac * 100:0}%");
             if (p.Done > 0 && p.Done < p.Total)
             {
                 double perItem = _phase.Elapsed.TotalMilliseconds / p.Done;
                 double leftMs = perItem * (p.Total - p.Done);
-                if (leftMs >= 1000) sb.Append($"  · 剩余 {FormatLeft(leftMs)}");
+                if (leftMs >= 1000) sb.Append($"　·　剩余 {FormatLeft(leftMs)}");
             }
-            if (!string.IsNullOrEmpty(p.Current)) sb.Append("  · " + Shorten(p.Current, 20));
+            if (!string.IsNullOrEmpty(p.Current)) sb.Append("　·　" + Shorten(p.Current, 22));
         }
         else if (p.Done > 0)
         {
-            sb.Append($"  {p.Done:N0} 个");
+            sb.Append($"{p.Done:N0} 个");
         }
 
         ScanText.Text = sb.ToString();
