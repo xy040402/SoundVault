@@ -999,11 +999,11 @@
                             </Border.Effect>
                                 <StackPanel>
                                     <!-- 第一行：在干什么 + 能不能继续操作 -->
-                                    <TextBlock x:Name="ScanHead" Text="正在建立索引…" FontSize="11.5"
+                                    <TextBlock x:Name="ScanHead" Text="正在建立索引…" FontSize="11.5" HorizontalAlignment="Center" TextAlignment="Center"
                                                Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
 
                                     <!-- 第二行：数字 / 百分比 / 剩余时间 / 文件名 / 进度条 / 取消 -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0" HorizontalAlignment="Center">
                                         <TextBlock x:Name="ScanText" Text="" FontSize="10.5"
                                                    Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                                         <Border Width="150" Height="3" CornerRadius="2" Margin="10,0,0,0"
