@@ -178,6 +178,17 @@
                         <TextBlock Text="感谢使用。硬盘上的音效文件从头到尾没有被改动。"
                                    Style="{StaticResource PageHint}" Margin="0,14,0,0"/>
                     </StackPanel>
+                    <!-- ④ 再确认一次（勾了"同时删除软件数据"时）-->
+                    <StackPanel x:Name="PageDataConfirm" Visibility="Collapsed">
+                        <TextBlock Text="再确认一次" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Margin="0,14,0,0" Foreground="#FFFCA5A5" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="你勾选了「同时删除软件数据」。"/>
+                        <TextBlock Margin="0,10,0,0" Style="{StaticResource PageHint}"
+                                   Text="会删掉评分、收藏、标签、集合、播放历史，删了不能恢复。硬盘上的音效文件不受影响。"/>
+
+                        <TextBlock Text="将被删除的位置" Style="{StaticResource PageHint}" Margin="0,14,0,2"/>
+                        <TextBlock x:Name="DataConfirmPath" Foreground="#FFC8D0DE" FontSize="10.5" TextWrapping="Wrap" Text=""/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- 按钮条 -->

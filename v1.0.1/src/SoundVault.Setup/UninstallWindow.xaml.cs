@@ -47,11 +47,14 @@ public partial class UninstallWindow : Window
         PageConfirm.Visibility = s == 0 ? Visibility.Visible : Visibility.Collapsed;
         PageRunning.Visibility = s == 1 ? Visibility.Visible : Visibility.Collapsed;
         PageDone.Visibility = s == 2 ? Visibility.Visible : Visibility.Collapsed;
+        PageDataConfirm.Visibility = s == 3 ? Visibility.Visible : Visibility.Collapsed;
 
-        ActionBtn.Content = s == 2 ? "完成" : "卸载";
+        ActionBtn.Content = s == 2 ? "完成" : (s == 3 ? "确定删除并卸载" : "卸载");
+        if (s == 3) ActionBtn.Width = 148;
+        else ActionBtn.Width = 104;
         ActionBtn.Style = (Style)FindResource(s == 2 ? "PrimaryBtn" : "DangerBtn");
         ActionBtn.IsEnabled = s != 1;
-        CancelBtn.Content = s == 2 ? "关闭" : "取消";
+        CancelBtn.Content = s == 2 ? "关闭" : (s == 3 ? "返回" : "取消");
         CancelBtn.Visibility = s == 2 ? Visibility.Collapsed : Visibility.Visible;
         CancelBtn.IsEnabled = s != 1;
         CloseBtn.IsEnabled = s != 1;
@@ -65,6 +68,7 @@ public partial class UninstallWindow : Window
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         if (_running) return;          // 正在删的时候不让关
+        if (_step == 3) { DeleteDataBox.IsChecked = false; SetStep(0); return; }
         if (_step == 2) FinishAndClose();
         else Close();
     }
@@ -75,6 +79,12 @@ public partial class UninstallWindow : Window
 
         if (_step == 2) { FinishAndClose(); return; }
 
+        if (_step == 0 && DeleteDataBox.IsChecked == true)
+        {
+            DataConfirmPath.Text = DataDir;
+            SetStep(3);
+            return;
+        }
         _ = RunUninstallAsync();
     }
 
@@ -84,19 +94,6 @@ public partial class UninstallWindow : Window
     {
         _deleteData = DeleteDataBox.IsChecked == true;
 
-        if (_deleteData)
-        {
-            var sure = MessageBox.Show(this,
-                "确定要一并删除软件数据吗？\n\n" +
-                "会删掉：评分、收藏、标签、集合、播放历史（" + DataDir + "）\n" +
-                "删除后无法恢复；你在硬盘上的音效文件不受影响。",
-                "音匣 SoundVault · 请再确认一次", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (sure != MessageBoxResult.Yes)
-            {
-                DeleteDataBox.IsChecked = false;
-                _deleteData = false;
-            }
-        }
 
         _running = true;
         SetStep(1);
@@ -130,8 +127,9 @@ public partial class UninstallWindow : Window
             Report(0.3, "正在移除开始菜单与桌面快捷方式…");
             var desktop = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "音匣 SoundVault.lnk");
             try { if (File.Exists(desktop)) File.Delete(desktop); } catch { }
-            var startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "音匣 SoundVault");
-            try { if (Directory.Exists(startMenu)) Directory.Delete(startMenu, recursive: true); } catch { }
+            var programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            try { var lnk = Path.Combine(programs, "音匣 SoundVault.lnk"); if (File.Exists(lnk)) File.Delete(lnk); } catch { }
+            try { var folder = Path.Combine(programs, "音匣 SoundVault"); if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); } catch { }
 
             // 3) 注册表（只删指向自己这个目录的登记项）
             Report(0.45, "正在清理「应用和功能」里的登记项…");

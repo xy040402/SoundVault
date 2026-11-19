@@ -241,6 +241,18 @@
                         <TextBlock Text="修好原因后点「重试」；想换个位置就点「上一步」。"
                                    Style="{StaticResource PageHint}" Margin="0,12,0,0"/>
                     </StackPanel>
+                    <!-- ⑤ 提示/确认（替代系统 MessageBox）-->
+                    <StackPanel x:Name="PagePrompt" Visibility="Collapsed">
+                        <TextBlock x:Name="PromptTitle" Style="{StaticResource PageTitle}" Text=""/>
+                        <TextBlock x:Name="PromptText" Margin="0,14,0,0" Style="{StaticResource PageHint}" Text=""/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+                            <Button x:Name="PromptYes" Content="继续" Width="132" Height="32"
+                                    Style="{StaticResource PrimaryBtn}" Click="PromptYes_Click"/>
+                            <Button x:Name="PromptNo" Content="取消" Width="96" Height="32" Margin="8,0,0,0"
+                                    Style="{StaticResource GhostBtn}" Click="PromptNo_Click"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
 
                 <!-- 按钮条 -->

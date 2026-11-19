@@ -68,6 +68,7 @@ public partial class SetupWindow : Window
         PageInstall.Visibility = s == 2 ? Visibility.Visible : Visibility.Collapsed;
         PageFinish.Visibility = s == 3 ? Visibility.Visible : Visibility.Collapsed;
         PageError.Visibility = s == 4 ? Visibility.Visible : Visibility.Collapsed;
+        PagePrompt.Visibility = s == 5 ? Visibility.Visible : Visibility.Collapsed;
 
         BackBtn.Visibility = (s == 1 || s == 4) ? Visibility.Visible : Visibility.Collapsed;
 
@@ -79,7 +80,9 @@ public partial class SetupWindow : Window
             4 => "重试",
             _ => "请稍候…"
         };
-        NextBtn.IsEnabled = s != 2 && !(_payloadMissing && s == 1);
+        NextBtn.IsEnabled = s != 2 && s != 5 && !(_payloadMissing && s == 1);
+        NextBtn.Visibility = s == 5 ? Visibility.Collapsed : Visibility.Visible;
+        CancelBtn.Visibility = s == 5 ? Visibility.Collapsed : Visibility.Visible;
 
         CancelBtn.Content = s == 3 ? "关闭" : "取消";
         CancelBtn.IsEnabled = s != 2;
@@ -170,7 +173,7 @@ public partial class SetupWindow : Window
         await Task.Yield();      // 先把"安装中"这一页画出来，再做检查
 
         // 1) 有正在运行的实例？问一句，关掉才继续
-        if (!EnsureAppClosed())
+        if (!await EnsureAppClosedAsync())
         {
             SetStep(1);
             Notice("已取消：请先关闭正在运行的音匣，再点「安装」。");
@@ -180,7 +183,7 @@ public partial class SetupWindow : Window
         // 2) 旧版本装在别的位置？提示先卸载
         if (TryGetExisting(out var oldPath, out var oldVersion) && !SameDir(oldPath, dir))
         {
-            if (!RemoveOldInstall(oldPath, oldVersion, dir))
+            if (!await RemoveOldInstallAsync(oldPath, oldVersion, dir))
             {
                 SetStep(1);
                 Notice("已取消：旧版本没有卸载。");
@@ -368,6 +371,34 @@ public partial class SetupWindow : Window
         }
     }
 
+    // ── 向导内的询问（替代系统 MessageBox）───────────────
+
+    private TaskCompletionSource<bool>? _promptTcs;
+
+    /// <summary>在向导里问一句，返回用户点了"继续"还是"取消"。</summary>
+    private Task<bool> AskAsync(string title, string text, string yes, string no)
+    {
+        PromptTitle.Text = title;
+        PromptText.Text = text;
+        PromptYes.Content = yes;
+        PromptNo.Content = no;
+
+        _promptTcs = new TaskCompletionSource<bool>();
+        SetStep(5);
+        return _promptTcs.Task;
+    }
+
+    private void PromptYes_Click(object sender, RoutedEventArgs e)
+    {
+        SetStep(2);
+        _promptTcs?.TrySetResult(true);
+    }
+
+    private void PromptNo_Click(object sender, RoutedEventArgs e)
+    {
+        _promptTcs?.TrySetResult(false);
+    }
+
     // ── 窗口拖动 / 关闭 ─────────────────────────────────────
 
     private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -392,26 +423,21 @@ public partial class SetupWindow : Window
     }
 
     /// <summary>有正在运行的实例就问一句，同意就关掉。</summary>
-    private bool EnsureAppClosed()
+    /// <summary>有正在运行的实例就在向导里问一句，同意就关掉。</summary>
+    private async Task<bool> EnsureAppClosedAsync()
     {
         var procs = RunningApp();
         if (procs.Length == 0) return true;
 
-        var answer = MessageBox.Show(this,
-            $"音匣正在运行（{procs.Length} 个进程）。\n\n继续安装需要先关掉它，否则文件被占用会失败。\n\n现在关闭音匣并继续吗？",
-            "音匣 SoundVault", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (answer != MessageBoxResult.Yes) return false;
+        var ok = await AskAsync("音匣正在运行",
+            $"检测到 {procs.Length} 个音匣进程。\n\n继续安装要先关掉它，否则文件被占用会失败。",
+            "关闭音匣并继续", "取消安装");
+        if (!ok) return false;
 
-        foreach (var p in procs)
-        {
-            try { p.CloseMainWindow(); } catch { }
-        }
-        Thread.Sleep(800);
-        foreach (var p in procs)
-        {
-            try { if (!p.HasExited) p.Kill(); } catch { }
-        }
-        Thread.Sleep(500);
+        foreach (var p in procs) { try { p.CloseMainWindow(); } catch { } }
+        await Task.Delay(800);
+        foreach (var p in procs) { try { if (!p.HasExited) p.Kill(); } catch { } }
+        await Task.Delay(500);
         return true;
     }
 
@@ -446,23 +472,21 @@ public partial class SetupWindow : Window
     }
 
     /// <summary>旧版本装在别处：问一句，同意就先把旧版本卸掉。</summary>
-    private bool RemoveOldInstall(string oldPath, string oldVersion, string newPath)
+    /// <summary>旧版本装在别处：在向导里问一句，同意就先把旧版本卸掉。</summary>
+    private async Task<bool> RemoveOldInstallAsync(string oldPath, string oldVersion, string newPath)
     {
-        var msg = "检测到已安装的旧版本：\n\n" +
-                  $"    位置：{oldPath}\n" +
-                  $"    版本：{(oldVersion.Length > 0 ? oldVersion : "未知")}\n\n" +
-                  "是否先卸载旧版本，再安装到：\n\n" +
-                  $"    位置：{newPath}\n\n" +
-                  "（评分、标签、集合等用户数据不会被删除）";
-        if (MessageBox.Show(this, msg, "音匣 SoundVault", MessageBoxButton.YesNo, MessageBoxImage.Question)
-            != MessageBoxResult.Yes) return false;
+        var ok = await AskAsync("检测到已安装的旧版本",
+            $"旧版本 {(oldVersion.Length > 0 ? oldVersion : "（版本未知）")} 装在：\n{oldPath}\n\n" +
+            $"要先卸载它，再安装到：\n{newPath}\n\n" +
+            "评分、标签、集合等用户数据不会被删除。",
+            "卸载旧版本并继续", "取消");
+        if (!ok) return false;
 
         var uninstaller = Path.Combine(oldPath, UninstallerName);
         if (!File.Exists(uninstaller))
         {
-            MessageBox.Show(this,
-                $"找不到旧版本的卸载程序：\n{uninstaller}\n\n请手动删除这个文件夹后重试。",
-                "音匣 SoundVault", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStep(1);
+            Notice($"找不到旧版本的卸载程序：{uninstaller}。请手动删掉那个文件夹再试。");
             return false;
         }
 
@@ -471,17 +495,17 @@ public partial class SetupWindow : Window
         try { Process.Start(psi); }
         catch (Exception ex)
         {
-            MessageBox.Show(this, "启动旧版本卸载程序失败：" + ex.Message, "音匣 SoundVault",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStep(1);
+            Notice("启动旧版本卸载程序失败：" + ex.Message);
             return false;
         }
 
+        SetStep(2);
         LogText.Text = "正在卸载旧版本…";
         Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
         for (int i = 0; i < 60 && Directory.Exists(oldPath); i++)
         {
-            Thread.Sleep(400);
-            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            await Task.Delay(400);
         }
         return true;
     }
@@ -645,9 +669,11 @@ internal static class Installer
         Step("创建开始菜单快捷方式", () =>
         {
             if (!createStartMenu) return;
-            var startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "音匣 SoundVault");
-            Directory.CreateDirectory(startMenu);
-            var lnk = Path.Combine(startMenu, "音匣 SoundVault.lnk");
+            var programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            // 直接放在「开始菜单\程序」根下：按 Win 打开就是「所有应用」里的一条，不用再点开同名文件夹
+            var legacyFolder = Path.Combine(programs, "音匣 SoundVault");
+            try { if (Directory.Exists(legacyFolder)) Directory.Delete(legacyFolder, recursive: true); } catch { }
+            var lnk = Path.Combine(programs, "音匣 SoundVault.lnk");
             StartMenuOk = CreateShortcut(lnk, appPath, dir);
             StartMenuPath = lnk;
             if (!StartMenuOk) SetupLog.Warn("安装", "开始菜单快捷方式没有建成 → " + lnk);
