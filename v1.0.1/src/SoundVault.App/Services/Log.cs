@@ -205,9 +205,31 @@ public static class Log
         try
         {
             var asm = typeof(Log).Assembly;
-            var vi = FileVersionInfo.GetVersionInfo(asm.Location);
-            sb.AppendLine($"应用版本   : {vi.ProductVersion} ({vi.FileVersion})");
-            sb.AppendLine($"构建时间   : {File.GetLastWriteTime(asm.Location):yyyy-MM-dd HH:mm}");
+
+            // 单文件发布时 Assembly.Location 是空串，要退回 ProcessPath，否则一整段系统信息都取不到
+            string? loc = null;
+            try { loc = asm.Location; } catch { }
+            if (string.IsNullOrEmpty(loc) || !File.Exists(loc))
+            {
+                try { loc = Environment.ProcessPath; } catch { }
+            }
+
+            string version = asm.GetName().Version?.ToString() ?? "?";
+            string buildTime = "?";
+            try
+            {
+                if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
+                {
+                    var vi = FileVersionInfo.GetVersionInfo(loc);
+                    if (!string.IsNullOrWhiteSpace(vi.ProductVersion)) version = $"{vi.ProductVersion} ({vi.FileVersion})";
+                    buildTime = File.GetLastWriteTime(loc).ToString("yyyy-MM-dd HH:mm");
+                }
+            }
+            catch { }
+
+            sb.AppendLine($"应用版本   : {version}");
+            sb.AppendLine($"构建时间   : {buildTime}");
+            sb.AppendLine($"程序路径   : {loc}");
             sb.AppendLine($"Windows    : {Environment.OSVersion.VersionString} / {(Environment.Is64BitOperatingSystem ? "64 位系统" : "32 位系统")}");
             sb.AppendLine($".NET       : {Environment.Version}");
             sb.AppendLine($"处理器     : {Environment.ProcessorCount} 逻辑核");
