@@ -53,6 +53,8 @@ jobs:
           dotnet publish "$dir/src/SoundVault.Setup" -c Release -r win-x64 --self-contained `
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
             -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$ver -o dist
+            Copy-Item dist/SoundVault.Setup.exe "dist/SoundVault-$ver-Setup.exe" -Force
+            Copy-Item dist/SoundVault.Setup.exe "dist/音匣安装包.exe" -Force
 
       - name: 上传产物
         uses: actions/upload-artifact@v4
