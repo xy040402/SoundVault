@@ -18,6 +18,11 @@
     <Compile Include="..\..\src\SoundVault.App\Services\ExportNames.cs" Link="Services\ExportNames.cs" />
     <Compile Include="..\..\src\SoundVault.App\Services\Loudness.cs" Link="Services\Loudness.cs" />
     <Compile Include="..\..\src\SoundVault.App\Services\PinyinSearch.cs" Link="Services\PinyinSearch.cs" />
+      <!-- 1.0.3 搜索增强：同义词 / 繁简 / 查询扩展 / 自然排序 -->
+      <Compile Include="..\..\src\SoundVault.App\Services\Synonyms.cs" Link="Services\Synonyms.cs" />
+      <Compile Include="..\..\src\SoundVault.App\Services\TradSimp.cs" Link="Services\TradSimp.cs" />
+      <Compile Include="..\..\src\SoundVault.App\Services\QueryExpander.cs" Link="Services\QueryExpander.cs" />
+      <Compile Include="..\..\src\SoundVault.App\Services\NaturalComparer.cs" Link="Services\NaturalComparer.cs" />
     <!-- Models.cs 里用到了 WaveformView 的 WaveData，把那个控件也链进来（纯托管，无外部依赖） -->
     <Compile Include="..\..\src\SoundVault.App\Controls\WaveformView.cs" Link="Controls\WaveformView.cs" />
     <!-- Models.Wave 需要 WavReader（纯托管，靠 NAudio 的解码器但这里只用到静态转换） -->
